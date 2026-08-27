@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NewsAg — Tayyar Digest</title>
+<style>
+:root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --accent: #e63946;
+    --text: #1c1e21;
+    --muted: #6b7280;
+    --border: #e2e5e9;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.site-header {
+    background: var(--panel);
+    padding: 18px 28px;
+    border-bottom: 3px solid var(--accent);
+}
+.site-header h1 { margin: 0; font-size: 22px; }
+.site-header h1 span { font-size: 14px; color: var(--muted); font-weight: normal; }
+
+main#app { padding: 24px; }
+
+.loading {
+    text-align: center;
+    padding: 60px;
+    color: var(--muted);
+    font-size: 16px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 22px;
+    align-items: start;
+}
+@media (max-width: 1000px) {
+    .grid { grid-template-columns: 1fr; }
+    .live-col { order: 1; }
+    .featured-col { order: 2; }
+    .exclusive-col { order: 3; }
+}
+
+.section-title {
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+}
+
+.cards { display: flex; flex-direction: column; gap: 14px; }
+
+.featured-col .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 14px;
+}
+
+.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .15s ease, border-color .15s ease;
+}
+.card:hover { transform: translateY(-3px); border-color: var(--accent); }
+
+.card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+    background: #eaeaea;
+}
+
+.featured-col .card img {
+    aspect-ratio: 1 / 1;
+    height: auto;
+}
+
+.card .body { padding: 10px 14px 14px; }
+.card .tag {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    letter-spacing: .5px;
+}
+.card h3 { font-size: 15px; margin: 0; line-height: 1.4; }
+.featured-col .card h3 { font-size: 13.5px; }
+.featured-col .card .body { padding: 8px 10px 12px; }
+
+.exclusive-col .card h3 { font-size: 14px; }
+.exclusive-col .card .body { padding: 10px 12px; }
+
+.live-list {
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.live-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+}
+.live-item:last-child { border-bottom: none; }
+.live-item:hover { background: #f2f3f5; }
+.live-item .time {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 13px;
+    min-width: 44px;
+}
+.live-item .title { font-size: 13.5px; line-height: 1.4; flex: 1; }
+.live-item .clickable-icon {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+.modal.hidden { display: none; }
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+}
+.modal-panel {
+    position: relative;
+    background: var(--panel);
+    border-radius: 12px;
+    max-width: 720px;
+    width: 92%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 30px;
+    border: 1px solid var(--border);
+}
+.modal-close {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 26px;
+    cursor: pointer;
+}
+.modal-close:hover { color: var(--accent); }
+
+.article-title { font-size: 22px; margin: 6px 0 10px; }
+.article-meta { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+.article-meta .tag {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    margin-inline-end: 6px;
+}
+.article-image { width: 100%; border-radius: 8px; margin-bottom: 16px; }
+.article-body { line-height: 1.9; font-size: 16px; white-space: pre-wrap; }
+.error-msg { color: var(--accent); text-align: center; padding: 40px; }
+</style>
+</head>
+<body>
+    <header class="site-header">
+        <h1>NewsAg <span>— live digest from tayyar.org</span></h1>
+    </header>
+
+    <main id="app">
+        <div id="loading" class="loading">Loading latest news…</div>
+        <div id="content" class="grid" style="display:none">
+            <section class="col featured-col">
+                <h2 class="section-title">Featured News</h2>
+                <div id="featured" class="cards"></div>
+            </section>
+
+            <section class="col live-col">
+                <h2 class="section-title">Live News</h2>
+                <div id="live" class="live-list"></div>
+            </section>
+
+            <section class="col exclusive-col">
+                <h2 class="section-title">Exclusive</h2>
+                <div id="exclusive" class="cards"></div>
+            </section>
+        </div>
+    </main>
+
+    <div id="modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <button id="modalClose" class="modal-close">&times;</button>
+            <div id="modalBody" class="modal-body">
+                <div class="loading">Loading article…</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const BASE_URL = 'https://www.tayyar.org';
+// tayyar.org sends no CORS headers, so a direct fetch() from the local file
+// will fail. We try a direct fetch first, then fall back to a public CORS
+// proxy that mirrors the raw HTML response.
+const CORS_PROXIES = [
+    (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+async function fetchHtml(url) {
+    try {
+        const res = await fetch(url, { mode: 'cors' });
+        if (res.ok) return await res.text();
+    } catch (e) { /* fall through to proxies */ }
+
+    for (const buildProxyUrl of CORS_PROXIES) {
+        try {
+            const res = await fetch(buildProxyUrl(url));
+            if (res.ok) return await res.text();
+        } catch (e) { /* try next proxy */ }
+    }
+    throw new Error('Unable to fetch content (direct and proxy attempts failed)');
+}
+
+function absUrl(href) {
+    if (!href) return null;
+    return href.startsWith('http') ? href : BASE_URL + href;
+}
+
+function parseHtml(html) {
+    return new DOMParser().parseFromString(html, 'text/html');
+}
+
+function text(el) {
+    return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+}
+
+async function scrapeHomepage() {
+    const html = await fetchHtml(BASE_URL + '/');
+    const doc = parseHtml(html);
+
+    const featured = [];
+    doc.querySelectorAll('.Featured .swiper-slide').forEach(el => {
+        const link = el.querySelector('a.item');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href'));
+        const title = text(link.querySelector('h3.caption'));
+        const image = link.querySelector('img') ? link.querySelector('img').getAttribute('src') : null;
+        const tagEl = link.querySelector('.nametag');
+        const tag = tagEl ? text(tagEl) : null;
+        if (href && title) {
+            featured.push({ id: el.getAttribute('data-article-id') || href, title, url: href, image, tag });
+        }
+    });
+
+    const exclusive = [];
+    doc.querySelectorAll('.Exclusive .list > li').forEach(el => {
+        const link = el.querySelector('a.item');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href'));
+        const title = text(link.querySelector('h3.caption'));
+        const image = link.querySelector('img') ? link.querySelector('img').getAttribute('src') : null;
+        if (href && title) {
+            exclusive.push({ id: href, title, url: href, image });
+        }
+    });
+
+    const live = [];
+    doc.querySelectorAll('#liveNewsList > li').forEach(el => {
+        const link = el.querySelector('a.news');
+        const href = link ? absUrl(link.getAttribute('href')) : null;
+        let title = '';
+        if (link) {
+            const caption = link.querySelector('h3.caption');
+            if (caption) {
+                const clone = caption.cloneNode(true);
+                clone.querySelectorAll('.more-link').forEach(n => n.remove());
+                title = text(clone);
+            }
+        }
+        const clockEl = el.querySelector('.clock');
+        const time = clockEl ? text(clockEl) : '';
+        if (title) {
+            live.push({ id: el.getAttribute('data-livearticle-id'), title, url: href, time });
+        }
+    });
+
+    return { featured, exclusive, live };
+}
+
+async function scrapeArticle(url) {
+    const html = await fetchHtml(url);
+    const doc = parseHtml(html);
+
+    const titleEl = doc.querySelector('#MainArticleTitle') || doc.querySelector('h1.title');
+    const title = text(titleEl);
+
+    const imgEl = doc.querySelector('.Article .photo img');
+    const metaImg = doc.querySelector('meta[itemprop="image"]');
+    const image = imgEl ? imgEl.getAttribute('src') : (metaImg ? metaImg.getAttribute('content') : null);
+
+    const dateEl = doc.querySelector('.Article .date');
+    const date = dateEl ? text(dateEl) : '';
+
+    const tags = [];
+    doc.querySelectorAll('.Article .taglist .nametag').forEach(el => tags.push(text(el)));
+
+    const bodyEl = doc.querySelector('.Article .text');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style').forEach(n => n.remove());
+        body = clone.textContent.replace(/\s+\n/g, '\n').trim();
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
+// ---- Rendering ----
+
+const loadingEl = document.getElementById('loading');
+const contentEl = document.getElementById('content');
+const modal = document.getElementById('modal');
+const modalBody = document.getElementById('modalBody');
+const modalClose = document.getElementById('modalClose');
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+function attachClicks(container) {
+    container.querySelectorAll('[data-url]').forEach(node => {
+        node.addEventListener('click', () => openArticle(decodeURIComponent(node.dataset.url)));
+    });
+}
+
+function renderFeatured(items) {
+    const el = document.getElementById('featured');
+    el.innerHTML = items.map(item => `
+        <div class="card" data-url="${encodeURIComponent(item.url)}">
+            ${item.image ? `<img src="${item.image}" alt="">` : ''}
+            <div class="body">
+                ${item.tag ? `<span class="tag">${escapeHtml(item.tag)}</span>` : ''}
+                <h3>${escapeHtml(item.title)}</h3>
+            </div>
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+function renderExclusive(items) {
+    const el = document.getElementById('exclusive');
+    el.innerHTML = items.map(item => `
+        <div class="card" data-url="${encodeURIComponent(item.url)}">
+            ${item.image ? `<img src="${item.image}" alt="">` : ''}
+            <div class="body">
+                <span class="tag">Exclusive</span>
+                <h3>${escapeHtml(item.title)}</h3>
+            </div>
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+function renderLive(items) {
+    const el = document.getElementById('live');
+    el.innerHTML = items.map(item => `
+        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}"` : 'style="cursor:default"'}>
+            <div class="time">${escapeHtml(item.time || '')}</div>
+            <div class="title">${escapeHtml(item.title)}</div>
+            ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+async function openArticle(url) {
+    modal.classList.remove('hidden');
+    modalBody.innerHTML = '<div class="loading">Loading article…</div>';
+    try {
+        const data = await scrapeArticle(url);
+        modalBody.innerHTML = `
+            <h2 class="article-title">${escapeHtml(data.title)}</h2>
+            <div class="article-meta">
+                ${(data.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+                ${data.date ? escapeHtml(data.date) : ''}
+            </div>
+            ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
+            <div class="article-body">${escapeHtml(data.body)}</div>
+            <p><a href="${url}" target="_blank" rel="noopener">View original on tayyar.org</a></p>
+        `;
+    } catch (err) {
+        modalBody.innerHTML = `<div class="error-msg">Failed to load article: ${err.message}</div>`;
+    }
+}
+
+modalClose.addEventListener('click', () => modal.classList.add('hidden'));
+modal.querySelector('.modal-backdrop').addEventListener('click', () => modal.classList.add('hidden'));
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+    }
+});
+
+async function loadHome() {
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    try {
+        const data = await scrapeHomepage();
+        renderFeatured(data.featured);
+        renderExclusive(data.exclusive);
+        renderLive(data.live);
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'grid';
+    } catch (err) {
+        loadingEl.innerHTML = `<div class="error-msg">Failed to load news: ${err.message}</div>`;
+    }
+}
+
+loadHome();
+</script>
+</body>
+</html>
