@@ -582,18 +582,110 @@ async function scrapeElnashraLive() {
     const html = await fetchHtml(ELNASHRA_BASE_URL + '/');
     const doc = parseHtml(html);
 
-    const live = [];
+    const items = [];
     doc.querySelectorAll('.unread-news .listnews.collapse > li.item').forEach(el => {
         const link = el.querySelector('a.newstitle');
         if (!link) return;
         const href = absUrl(link.getAttribute('href') || el.getAttribute('data-url'), ELNASHRA_BASE_URL);
         const title = link.getAttribute('title') || text(link.querySelector('.item-title'));
         if (href && title) {
-            live.push({ id: el.getAttribute('data-newsid') || href, title, url: href, isElnashra: true });
+            items.push({ id: el.getAttribute('data-newsid') || href, title, url: href, isElnashra: true });
         }
     });
 
-    return live;
+    // Elnashra's homepage list has no timestamps and isn't in chronological
+    // order, so fetch each article's real publish date/time (cached in
+    // localStorage for performance) and sort newest-first, like Tayyar.
+    const cache = loadElnashraDateCache();
+    const now = Date.now();
+    await Promise.all(items.map(async item => {
+        const cached = cache[item.url];
+        if (cached && (now - cached.ts) < ELNASHRA_DATE_CACHE_TTL) {
+            item.sortDate = cached.sortDate;
+            item.time = cached.time;
+            return;
+        }
+        const dateStr = await fetchElnashraDate(item.url);
+        const parsed = parseElnashraDate(dateStr);
+        item.sortDate = parsed ? parsed.getTime() : 0;
+        item.time = parsed ? formatClockTime(parsed) : '';
+        cache[item.url] = { sortDate: item.sortDate, time: item.time, ts: now };
+    }));
+    saveElnashraDateCache(cache);
+
+    items.sort((a, b) => b.sortDate - a.sortDate);
+
+    return items;
+}
+
+const ARABIC_MONTHS = {
+    'كانون الثاني': 0, 'يناير': 0,
+    'شباط': 1, 'فبراير': 1,
+    'آذار': 2, 'مارس': 2,
+    'نيسان': 3, 'أبريل': 3,
+    'أيار': 4, 'مايو': 4,
+    'حزيران': 5, 'يونيو': 5,
+    'تموز': 6, 'يوليو': 6,
+    'آب': 7, 'أغسطس': 7,
+    'أيلول': 8, 'سبتمبر': 8,
+    'تشرين الأول': 9, 'أكتوبر': 9,
+    'تشرين الثاني': 10, 'نوفمبر': 10,
+    'كانون الأول': 11, 'ديسمبر': 11,
+};
+
+function parseElnashraDate(str) {
+    if (!str) return null;
+    const clean = str.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+    const dayMatch = clean.match(/(\d{1,2})\s+([\u0600-\u06FF ]+?)\s+(\d{4})/);
+    const timeMatch = clean.match(/(\d{1,2}):(\d{2})/);
+    if (!dayMatch || !timeMatch) return null;
+    const day = parseInt(dayMatch[1], 10);
+    const month = ARABIC_MONTHS[dayMatch[2].trim()];
+    const year = parseInt(dayMatch[3], 10);
+    const hour = parseInt(timeMatch[1], 10);
+    const minute = parseInt(timeMatch[2], 10);
+    if (month === undefined || isNaN(day) || isNaN(year)) return null;
+    return new Date(year, month, day, hour, minute);
+}
+
+function formatClockTime(date) {
+    const h = String(date.getHours()).padStart(2, '0');
+    const m = String(date.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+}
+
+async function fetchElnashraDate(url) {
+    try {
+        const html = await fetchHtml(url);
+        const doc = parseHtml(html);
+        const dateEl = doc.querySelector('.desktop-date');
+        return dateEl ? text(dateEl) : '';
+    } catch (e) {
+        return '';
+    }
+}
+
+const ELNASHRA_DATE_CACHE_KEY = 'akhbar-elnashra-date-cache';
+const ELNASHRA_DATE_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+const ELNASHRA_DATE_CACHE_MAX_AGE = 48 * 60 * 60 * 1000; // prune entries older than this
+
+function loadElnashraDateCache() {
+    try {
+        return JSON.parse(localStorage.getItem(ELNASHRA_DATE_CACHE_KEY)) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveElnashraDateCache(cache) {
+    const now = Date.now();
+    const pruned = {};
+    for (const [url, entry] of Object.entries(cache)) {
+        if (now - entry.ts < ELNASHRA_DATE_CACHE_MAX_AGE) pruned[url] = entry;
+    }
+    try {
+        localStorage.setItem(ELNASHRA_DATE_CACHE_KEY, JSON.stringify(pruned));
+    } catch (e) { /* localStorage unavailable or full, skip caching */ }
 }
 
 async function scrapeElnashraArticle(url) {
@@ -687,6 +779,7 @@ function renderElnashraLive(items) {
     const el = document.getElementById('live-elnashra');
     el.innerHTML = items.map(item => `
         <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}" data-source="elnashra"` : 'style="cursor:default"'}>
+            <div class="time">${escapeHtml(item.time || '')}</div>
             <div class="title">${escapeHtml(item.title)}</div>
             ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
         </div>
