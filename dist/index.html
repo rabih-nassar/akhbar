@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Akhbar.FYI</title>
+<title>فور يور إنفرمايشن | For Your Information | أخبار</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;900&family=Zilla+Slab:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
@@ -334,7 +334,7 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
     max-width: none;
     max-height: none;
     overflow-y: auto;
-    padding: 44px;
+    padding: 68px 0 44px;
     border: 1px solid var(--border);
     box-sizing: border-box;
     animation: modal-in .35s var(--ease);
@@ -352,7 +352,7 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
     display: flex;
     gap: 8px;
 }
-.modal-close, .reader-mode-btn {
+.modal-close, .reader-mode-btn, .reader-font-btn {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 50%;
@@ -376,9 +376,24 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
     color: var(--accent-ink);
     border-color: var(--accent);
 }
+.reader-font-btn {
+    display: none;
+    font-family: "Zilla Slab", Georgia, serif;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0;
+    gap: 1px;
+    direction: ltr;
+}
+.reader-font-btn small { font-size: 10px; }
+.reader-font-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.reader-font-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.reader-font-btn:disabled { opacity: .35; cursor: default; }
+.modal.reader-active .reader-font-btn { display: flex; }
 
-.reader { max-width: 68ch; margin: 0 auto; transition: max-width .3s var(--ease); }
-.article-title { font-family: "Zilla Slab", Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1.35; margin: 10px 0 14px; }
+.reader { max-width: 80%; margin: 0 auto; transition: max-width .3s var(--ease); }
+.article-title { font-family: "Zilla Slab", Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1.35; margin: 10px 0 14px; text-align: center; }
 .article-meta { color: var(--muted); font-size: 13px; margin-bottom: 26px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; transition: opacity .25s var(--ease); }
 .article-meta .tag {
     display: inline-block;
@@ -390,7 +405,8 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
     font-weight: 700;
     transition: opacity .25s var(--ease), max-width .25s var(--ease);
 }
-.article-image { width: 100%; border-radius: 6px; margin-bottom: 26px; display: block; transition: opacity .25s var(--ease), max-height .3s var(--ease), margin .3s var(--ease); }
+.article-image { width: 100%; max-width: min(800px, 33vw); height: auto; border-radius: 6px; margin: 0 auto 26px; display: block; transition: opacity .25s var(--ease), max-height .3s var(--ease), margin .3s var(--ease); }
+.reader img { max-width: min(800px, 33vw); height: auto; display: block; margin-left: auto; margin-right: auto; }
 .article-body { line-height: 2; font-size: 17px; white-space: pre-wrap; transition: font-size .25s var(--ease), line-height .25s var(--ease), font-family .25s var(--ease), letter-spacing .25s var(--ease); }
 .article-body p { margin: 0 0 1.1em; }
 .reader-source {
@@ -409,20 +425,20 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
     background: oklch(98.5% 0.006 80);
     border-radius: 0;
     border: none;
-    padding: 44px 20px;
+    padding: 68px 0 44px;
 }
-.reader-mode .reader { max-width: 62ch; }
+.reader-mode .reader { max-width: 90%; }
 .reader-mode .article-image { display: none; }
 .reader-mode .article-meta .tag { display: none; }
 .reader-mode .article-meta { opacity: .7; }
 .reader-mode .article-body {
     font-family: "Zilla Slab", Georgia, serif;
-    font-size: 19px;
+    font-size: calc(19px * var(--reader-scale, 1));
     line-height: 2.15;
     letter-spacing: .1px;
 }
 .reader-mode .reader-source { opacity: .55; }
-.reader-mode .article-title { font-size: 27px; }
+.reader-mode .article-title { font-size: calc(27px * var(--reader-scale, 1)); }
 </style>
 </head>
 <body>
@@ -468,6 +484,11 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
                 <button id="readerModeBtn" class="reader-mode-btn" title="Reader mode">
                     <svg viewBox="0 0 24 24"><path d="M4 5.5c2-1 5-1.5 8-1.5s6 .5 8 1.5v13c-2-1-5-1.5-8-1.5s-6 .5-8 1.5v-13Z"/><path d="M12 4v15"/></svg>
                 </button>
+                <button id="fontDecBtn" class="reader-font-btn" title="Decrease text size" aria-label="Decrease text size">A<small>&minus;</small></button>
+                <button id="fontResetBtn" class="reader-font-btn" title="Reset text size" aria-label="Reset text size">
+                    <svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3 8.6"/><path d="M3 3.5V9h5.5"/></svg>
+                </button>
+                <button id="fontIncBtn" class="reader-font-btn" title="Increase text size" aria-label="Increase text size">A<small>+</small></button>
                 <button id="modalClose" class="modal-close">
                     <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>
                 </button>
@@ -516,6 +537,35 @@ function parseHtml(html) {
 
 function text(el) {
     return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+}
+
+// textContent flattens block structure (and drops <br>) so articles come back as
+// one run-on paragraph. Walk the tree instead, breaking on <br> and block tags.
+const BLOCK_TAGS = new Set([
+    'P', 'DIV', 'LI', 'UL', 'OL', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+    'BLOCKQUOTE', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'ASIDE',
+    'FIGURE', 'FIGCAPTION', 'TABLE', 'TR', 'PRE', 'HR', 'PICTURE', 'IFRAME'
+]);
+
+function blockText(root) {
+    let out = '';
+    const breakLine = () => { if (out && !out.endsWith('\n')) out += '\n'; };
+    const walk = (node) => {
+        node.childNodes.forEach(child => {
+            if (child.nodeType === Node.TEXT_NODE) {
+                out += child.nodeValue.replace(/\s+/g, ' ');
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                const tag = child.tagName;
+                if (tag === 'BR') { out += '\n'; return; }
+                const isBlock = BLOCK_TAGS.has(tag);
+                if (isBlock) breakLine();
+                walk(child);
+                if (isBlock) breakLine();
+            }
+        });
+    };
+    walk(root);
+    return out.split('\n').map(line => line.trim()).filter(Boolean).join('\n');
 }
 
 async function scrapeHomepage() {
@@ -593,7 +643,7 @@ async function scrapeArticle(url) {
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
         clone.querySelectorAll('script, style').forEach(n => n.remove());
-        body = clone.textContent.replace(/\s+\n/g, '\n').trim();
+        body = blockText(clone);
     }
 
     return { title, image, date, tags, body, url };
@@ -730,7 +780,7 @@ async function scrapeElnashraArticle(url) {
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
         clone.querySelectorAll('script, style, .ad-container, [id^="div-gpt-ad"], .inread-video').forEach(n => n.remove());
-        body = clone.textContent.replace(/\s+\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
+        body = blockText(clone);
     }
 
     return { title, image, date, tags, body, url };
@@ -817,6 +867,27 @@ function updateReaderProgress() {
     readerProgress.style.setProperty('--progress', pct + '%');
 }
 modalPanel.addEventListener('scroll', updateReaderProgress);
+
+const fontDecBtn = document.getElementById('fontDecBtn');
+const fontIncBtn = document.getElementById('fontIncBtn');
+const fontResetBtn = document.getElementById('fontResetBtn');
+const READER_SCALE_KEY = 'akhbar-reader-scale';
+const MIN_SCALE = 0.8, MAX_SCALE = 1.8, SCALE_STEP = 0.1, DEFAULT_SCALE = 1;
+let readerScale = parseFloat(localStorage.getItem(READER_SCALE_KEY)) || DEFAULT_SCALE;
+
+function setReaderScale(value) {
+    readerScale = Math.round(Math.min(MAX_SCALE, Math.max(MIN_SCALE, value)) * 100) / 100;
+    modalPanel.style.setProperty('--reader-scale', readerScale);
+    localStorage.setItem(READER_SCALE_KEY, readerScale);
+    fontDecBtn.disabled = readerScale <= MIN_SCALE;
+    fontIncBtn.disabled = readerScale >= MAX_SCALE;
+    fontResetBtn.disabled = readerScale === DEFAULT_SCALE;
+    updateReaderProgress();
+}
+fontDecBtn.addEventListener('click', () => setReaderScale(readerScale - SCALE_STEP));
+fontIncBtn.addEventListener('click', () => setReaderScale(readerScale + SCALE_STEP));
+fontResetBtn.addEventListener('click', () => setReaderScale(DEFAULT_SCALE));
+setReaderScale(readerScale);
 
 async function openArticle(url, source) {
     modal.classList.remove('hidden');
