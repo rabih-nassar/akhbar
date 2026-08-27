@@ -183,6 +183,8 @@ main#app { padding: 24px; }
     align-items: center;
     justify-content: center;
     z-index: 100;
+    padding: 10px;
+    box-sizing: border-box;
 }
 .modal.hidden { display: none; }
 .modal-backdrop {
@@ -193,13 +195,15 @@ main#app { padding: 24px; }
 .modal-panel {
     position: relative;
     background: var(--panel);
-    border-radius: 12px;
-    max-width: 720px;
-    width: 92%;
-    max-height: 85vh;
+    border-radius: 8px;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
     overflow-y: auto;
     padding: 30px;
     border: 1px solid var(--border);
+    box-sizing: border-box;
 }
 .modal-close {
     position: absolute;
@@ -210,6 +214,7 @@ main#app { padding: 24px; }
     color: var(--muted);
     font-size: 26px;
     cursor: pointer;
+    z-index: 1;
 }
 .modal-close:hover { color: var(--accent); }
 
