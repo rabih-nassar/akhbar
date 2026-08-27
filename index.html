@@ -117,7 +117,9 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
 .exclusive-col { animation-delay: .12s; }
 
 @media (max-width: 1000px) {
+    main#app { padding: 32px 12px 60px; }
     .grid { grid-template-columns: 1fr; }
+    .col { padding: 0 13px; }
     .col + .col { border-inline-start: none; border-top: 1px solid var(--rule); padding-top: 28px; margin-top: 28px; }
     .live-col { order: 1; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
     .featured-col { order: 2; }
