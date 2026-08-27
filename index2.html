@@ -702,14 +702,20 @@ if (todayDateEl) {
     todayDateEl.textContent = new Date().toLocaleDateString('ar-LB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
+const LIVE_TAB_KEY = 'akhbar-live-tab';
+
+function activateLiveTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.getElementById('live-tayyar').classList.toggle('active', tab === 'tayyar');
+    document.getElementById('live-elnashra').classList.toggle('active', tab === 'elnashra');
+    localStorage.setItem(LIVE_TAB_KEY, tab);
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
-        document.getElementById('live-tayyar').classList.toggle('active', tab === 'tayyar');
-        document.getElementById('live-elnashra').classList.toggle('active', tab === 'elnashra');
-    });
+    btn.addEventListener('click', () => activateLiveTab(btn.dataset.tab));
 });
+
+activateLiveTab(localStorage.getItem(LIVE_TAB_KEY) || 'tayyar');
 
 async function loadHome() {
     loadingEl.style.display = 'block';
