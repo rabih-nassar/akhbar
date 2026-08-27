@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NewsAg — Tayyar Digest</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+    <header class="site-header">
+        <h1>NewsAg <span>— live digest from tayyar.org</span></h1>
+    </header>
+
+    <main id="app">
+        <div id="loading" class="loading">Loading latest news…</div>
+        <div id="content" class="grid" style="display:none">
+            <section class="col featured-col">
+                <h2 class="section-title">Featured News</h2>
+                <div id="featured" class="cards"></div>
+            </section>
+
+            <section class="col live-col">
+                <h2 class="section-title">Live News</h2>
+                <div id="live" class="live-list"></div>
+            </section>
+
+            <section class="col exclusive-col">
+                <h2 class="section-title">Exclusive</h2>
+                <div id="exclusive" class="cards"></div>
+            </section>
+        </div>
+    </main>
+
+    <div id="modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <button id="modalClose" class="modal-close">&times;</button>
+            <div id="modalBody" class="modal-body">
+                <div class="loading">Loading article…</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
