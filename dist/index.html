@@ -126,6 +126,13 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
     .exclusive-col { order: 3; }
 }
 
+/* Wide screens: page spans edge-to-edge, side columns keep a fixed
+   comfortable width, and Live News expands to fill all remaining space. */
+@media (min-width: 1300px) {
+    main#app { max-width: none; }
+    .grid { grid-template-columns: 340px 1fr 340px; }
+}
+
 .section-title {
     font-family: "Noto Kufi Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
     font-style: normal;
@@ -409,7 +416,7 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
 <body>
     <header class="site-header">
         <div class="masthead-inner">
-            <h1>Akhbar.FYI</h1>
+            <h1>فور يور إنفرمايشن | For Your Information | أخبار </h1>
             <div class="masthead-meta">
                 <span><span class="dot"></span>مباشر</span>
                 <span id="todayDate"></span>
