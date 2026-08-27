@@ -321,28 +321,42 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
     from { opacity: 0; transform: scale(.98); }
     to { opacity: 1; transform: scale(1); }
 }
-.modal-close {
+.modal-actions {
     position: absolute;
     top: 16px;
     left: 20px;
+    z-index: 1;
+    display: flex;
+    gap: 8px;
+}
+.modal-close, .reader-mode-btn {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 50%;
     width: 36px; height: 36px;
     color: var(--muted);
-    font-size: 20px;
     cursor: pointer;
-    z-index: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease);
+    transition: color .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease), background .2s var(--ease);
+}
+.modal-close {
+    position: static;
+    font-size: 20px;
 }
 .modal-close:hover { color: var(--accent); border-color: var(--accent); transform: rotate(90deg); }
+.reader-mode-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.reader-mode-btn:hover { color: var(--accent); border-color: var(--accent); }
+.reader-mode-btn.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+}
 
-.reader { max-width: 68ch; margin: 0 auto; }
+.reader { max-width: 68ch; margin: 0 auto; transition: max-width .3s var(--ease); }
 .article-title { font-family: "Zilla Slab", Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1.35; margin: 10px 0 14px; }
-.article-meta { color: var(--muted); font-size: 13px; margin-bottom: 26px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.article-meta { color: var(--muted); font-size: 13px; margin-bottom: 26px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; transition: opacity .25s var(--ease); }
 .article-meta .tag {
     display: inline-block;
     background: var(--accent);
@@ -351,19 +365,36 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
     padding: 3px 9px;
     font-size: 11px;
     font-weight: 700;
+    transition: opacity .25s var(--ease), max-width .25s var(--ease);
 }
-.article-image { width: 100%; border-radius: 6px; margin-bottom: 26px; display: block; }
-.article-body { line-height: 2; font-size: 17px; white-space: pre-wrap; }
+.article-image { width: 100%; border-radius: 6px; margin-bottom: 26px; display: block; transition: opacity .25s var(--ease), max-height .3s var(--ease), margin .3s var(--ease); }
+.article-body { line-height: 2; font-size: 17px; white-space: pre-wrap; transition: font-size .25s var(--ease), line-height .25s var(--ease), font-family .25s var(--ease), letter-spacing .25s var(--ease); }
 .article-body p { margin: 0 0 1.1em; }
 .reader-source {
     margin-top: 40px;
     padding-top: 20px;
     border-top: 1px solid var(--rule);
     font-size: 13px;
+    transition: opacity .25s var(--ease);
 }
 .reader-source a { color: var(--accent); text-decoration: none; font-weight: 600; }
 .reader-source a:hover { text-decoration: underline; }
 .error-msg { color: var(--accent); text-align: center; padding: 60px 20px; font-size: 15px; }
+
+/* ---------- Minimalist reader mode ---------- */
+.modal-panel.reader-mode { background: oklch(98.5% 0.006 80); }
+.reader-mode .reader { max-width: 62ch; }
+.reader-mode .article-image { display: none; }
+.reader-mode .article-meta .tag { display: none; }
+.reader-mode .article-meta { opacity: .7; }
+.reader-mode .article-body {
+    font-family: "Zilla Slab", Georgia, serif;
+    font-size: 19px;
+    line-height: 2.15;
+    letter-spacing: .1px;
+}
+.reader-mode .reader-source { opacity: .55; }
+.reader-mode .article-title { font-size: 27px; }
 </style>
 </head>
 <body>
@@ -405,7 +436,12 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
         <div class="modal-backdrop"></div>
         <div class="reader-progress" id="readerProgress"></div>
         <div class="modal-panel" id="modalPanel">
-            <button id="modalClose" class="modal-close">&times;</button>
+            <div class="modal-actions">
+                <button id="readerModeBtn" class="reader-mode-btn" title="Reader mode">
+                    <svg viewBox="0 0 24 24"><path d="M4 5.5c2-1 5-1.5 8-1.5s6 .5 8 1.5v13c-2-1-5-1.5-8-1.5s-6 .5-8 1.5v-13Z"/><path d="M12 4v15"/></svg>
+                </button>
+                <button id="modalClose" class="modal-close">&times;</button>
+            </div>
             <div id="modalBody" class="modal-body reader">
                 <div class="loading">Loading article…</div>
             </div>
@@ -583,6 +619,7 @@ const contentEl = document.getElementById('content');
 const modal = document.getElementById('modal');
 const modalBody = document.getElementById('modalBody');
 const modalClose = document.getElementById('modalClose');
+const readerModeBtn = document.getElementById('readerModeBtn');
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -660,6 +697,8 @@ modalPanel.addEventListener('scroll', updateReaderProgress);
 
 async function openArticle(url, source) {
     modal.classList.remove('hidden');
+    modalPanel.classList.remove('reader-mode');
+    readerModeBtn.classList.remove('active');
     modalPanel.scrollTop = 0;
     readerProgress.style.setProperty('--progress', '0%');
     modalBody.innerHTML = '<div class="loading">Loading article…</div>';
@@ -682,6 +721,12 @@ async function openArticle(url, source) {
         modalBody.innerHTML = `<div class="error-msg">Failed to load article: ${err.message}</div>`;
     }
 }
+
+readerModeBtn.addEventListener('click', () => {
+    const active = modalPanel.classList.toggle('reader-mode');
+    readerModeBtn.classList.toggle('active', active);
+    updateReaderProgress();
+});
 
 modalClose.addEventListener('click', () => modal.classList.add('hidden'));
 modal.querySelector('.modal-backdrop').addEventListener('click', () => modal.classList.add('hidden'));
