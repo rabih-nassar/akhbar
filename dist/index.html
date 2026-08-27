@@ -166,6 +166,9 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
 }
 
 @media (max-width: 700px) {
+    /* Three tabs have to share a phone-width column, so shrink the labels
+       rather than let them wrap onto a second line. */
+    .tab-btn { font-size: 12px; padding: 9px 3px; }
     .site-header .masthead-inner { position: static; }
     .masthead-meta {
         position: static;
@@ -262,7 +265,8 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
 }
 .tab-btn {
     flex: 1;
-    padding: 9px 10px;
+    padding: 9px 6px;
+    white-space: nowrap;
     background: transparent;
     border: none;
     border-bottom: 2px solid transparent;
@@ -494,9 +498,11 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="tayyar">Tayyar</button>
                     <button class="tab-btn" data-tab="elnashra">Elnashra</button>
+                    <button class="tab-btn" data-tab="ldebate">Lebanon Debate</button>
                 </div>
                 <div id="live-tayyar" class="live-list tab-panel active"></div>
-                <div id="live-elnashra" class="live-list tab-panel"></div>
+                <div id="live-elnashra" class="live-list tab-panel"><div class="loading">Loading…</div></div>
+                <div id="live-ldebate" class="live-list tab-panel"><div class="loading">Loading…</div></div>
             </section>
 
             <section class="col exclusive-col">
@@ -816,6 +822,88 @@ async function scrapeElnashraArticle(url) {
     return { title, image, date, tags, body, url };
 }
 
+// Lebanon Debate's "على مدار الساعة" (around the clock) rolling feed. Each page
+// lists 10 flashes; the "المزيد" (more) button at the bottom is a plain link to
+// the next page, so following it once gives us the same two pages a reader
+// gets after one click.
+const LEBANONDEBATE_BASE_URL = 'https://www.lebanondebate.com';
+const LEBANONDEBATE_LIVE_URL = LEBANONDEBATE_BASE_URL +
+    '/category/223-%D8%B9%D9%84%D9%89-%D9%85%D8%AF%D8%A7%D8%B1-%D8%A7%D9%84%D8%B3%D8%A7%D8%B9%D8%A9';
+const LEBANONDEBATE_PAGES = 2;
+
+async function scrapeLebanonDebateLive() {
+    const items = [];
+    const seen = new Set();
+    let pageUrl = LEBANONDEBATE_LIVE_URL;
+
+    for (let page = 0; page < LEBANONDEBATE_PAGES && pageUrl; page++) {
+        const doc = parseHtml(await fetchHtml(pageUrl));
+
+        doc.querySelectorAll('li.ias-item').forEach(el => {
+            const link = el.querySelector('a');
+            const href = absUrl(link && link.getAttribute('href'), LEBANONDEBATE_BASE_URL);
+            const title = text(el.querySelector('h2'));
+            if (!href || !title || seen.has(href)) return;
+            seen.add(href);
+
+            const timeEl = el.querySelector('time');
+            const date = parseLebanonDebateDate(timeEl && timeEl.getAttribute('datetime'));
+            items.push({
+                id: href,
+                title,
+                url: href,
+                sortDate: date ? date.getTime() : 0,
+                time: date ? formatClockTime(date) : text(timeEl),
+            });
+        });
+
+        // Follow the real "more" link rather than guessing the pagination URL.
+        const next = doc.querySelector('#ias-pagination a.next');
+        pageUrl = next ? absUrl(next.getAttribute('href'), LEBANONDEBATE_BASE_URL) : null;
+    }
+
+    items.sort((a, b) => b.sortDate - a.sortDate);
+    return items;
+}
+
+// Items carry a machine-readable <time datetime="2026-08-27 18:57:09">.
+// Safari rejects that spacing in the Date constructor, so build the date from
+// the parts and treat it as local (Beirut) time, like the Elnashra parser.
+function parseLebanonDebateDate(str) {
+    if (!str) return null;
+    const m = str.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (!m) return null;
+    return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
+}
+
+async function scrapeLebanonDebateArticle(url) {
+    const html = await fetchHtml(url);
+    const doc = parseHtml(html);
+
+    const title = text(doc.querySelector('h1'));
+
+    const dateEl = doc.querySelector('.article-date') || doc.querySelector('.mobile-date');
+    const date = dateEl ? text(dateEl) : '';
+
+    const catEl = doc.querySelector('.article-page-header .category');
+    const tags = catEl ? [text(catEl)] : [];
+
+    // Flashes fall back to the site logo for og:image, which is not worth showing.
+    const metaImg = doc.querySelector('meta[property="og:image"]');
+    let image = metaImg ? metaImg.getAttribute('content') : null;
+    if (image && /main-logo|\.svg(\?|$)/i.test(image)) image = null;
+
+    const bodyEl = doc.querySelector('.article-texts');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style, iframe, .otp-article-poll, .advertisement, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        body = blockText(clone);
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
 const loadingEl = document.getElementById('loading');
 const contentEl = document.getElementById('content');
 const modal = document.getElementById('modal');
@@ -864,22 +952,11 @@ function renderExclusive(items) {
     attachClicks(el);
 }
 
-function renderLive(items) {
-    const el = document.getElementById('live-tayyar');
+function renderLiveList(panelId, items, source) {
+    const el = document.getElementById(panelId);
+    const sourceAttr = source ? ` data-source="${source}"` : '';
     el.innerHTML = items.map(item => `
-        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}"` : 'style="cursor:default"'}>
-            <div class="time">${escapeHtml(item.time || '')}</div>
-            <div class="title">${escapeHtml(item.title)}</div>
-            ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
-        </div>
-    `).join('');
-    attachClicks(el);
-}
-
-function renderElnashraLive(items) {
-    const el = document.getElementById('live-elnashra');
-    el.innerHTML = items.map(item => `
-        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}" data-source="elnashra"` : 'style="cursor:default"'}>
+        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}"${sourceAttr}` : 'style="cursor:default"'}>
             <div class="time">${escapeHtml(item.time || '')}</div>
             <div class="title">${escapeHtml(item.title)}</div>
             ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
@@ -919,6 +996,12 @@ fontIncBtn.addEventListener('click', () => setReaderScale(readerScale + SCALE_ST
 fontResetBtn.addEventListener('click', () => setReaderScale(DEFAULT_SCALE));
 setReaderScale(readerScale);
 
+// Tayyar is the default source, so it is not listed here.
+const ARTICLE_SOURCES = {
+    elnashra: { scrape: scrapeElnashraArticle, site: 'elnashra.com' },
+    ldebate: { scrape: scrapeLebanonDebateArticle, site: 'lebanondebate.com' },
+};
+
 async function openArticle(url, source) {
     modal.classList.remove('hidden');
     modalPanel.classList.remove('reader-mode');
@@ -928,9 +1011,12 @@ async function openArticle(url, source) {
     readerProgress.style.setProperty('--progress', '0%');
     modalBody.innerHTML = '<div class="loading">Loading article…</div>';
     try {
-        const data = source === 'elnashra' ? await scrapeElnashraArticle(url) : await scrapeArticle(url);
-        const siteName = source === 'elnashra' ? 'elnashra.com' : 'tayyar.org';
-        const paragraphs = (data.body || '').split(/\n+/).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`).join('');
+        const handler = ARTICLE_SOURCES[source];
+        const data = handler ? await handler.scrape(url) : await scrapeArticle(url);
+        const siteName = handler ? handler.site : 'tayyar.org';
+        // News flashes are headline-only, so say so rather than showing a blank body.
+        const paragraphs = (data.body || '').split(/\n+/).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`).join('')
+            || '<p>لا يتضمّن هذا الخبر نصّاً إضافيّاً.</p>';
         modalBody.innerHTML = `
             <h2 class="article-title">${escapeHtml(data.title)}</h2>
             <div class="article-meta">
@@ -970,9 +1056,10 @@ if (todayDateEl) {
 const LIVE_TAB_KEY = 'akhbar-live-tab';
 
 function activateLiveTab(tab) {
+    // Guard against a tab name saved by an older version of the page.
+    if (!document.querySelector(`.tab-btn[data-tab="${tab}"]`)) tab = 'tayyar';
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-    document.getElementById('live-tayyar').classList.toggle('active', tab === 'tayyar');
-    document.getElementById('live-elnashra').classList.toggle('active', tab === 'elnashra');
+    document.querySelectorAll('.live-col .tab-panel').forEach(p => p.classList.toggle('active', p.id === 'live-' + tab));
     localStorage.setItem(LIVE_TAB_KEY, tab);
 }
 
@@ -989,7 +1076,7 @@ async function loadHome() {
         const data = await scrapeHomepage();
         renderFeatured(data.featured);
         renderExclusive(data.exclusive);
-        renderLive(data.live);
+        renderLiveList('live-tayyar', data.live);
         loadingEl.style.display = 'none';
         contentEl.style.display = 'grid';
     } catch (err) {
@@ -997,12 +1084,20 @@ async function loadHome() {
         return;
     }
 
-    // Elnashra tab loads independently so a failure there doesn't block the main content.
+    // The secondary tabs load in parallel and independently, so a failure in
+    // one doesn't block the other or the main content.
+    await Promise.all([
+        loadLivePanel('live-elnashra', scrapeElnashraLive, 'elnashra'),
+        loadLivePanel('live-ldebate', scrapeLebanonDebateLive, 'ldebate'),
+    ]);
+}
+
+async function loadLivePanel(panelId, scrape, source) {
     try {
-        const elnashraLive = await scrapeElnashraLive();
-        renderElnashraLive(elnashraLive);
+        renderLiveList(panelId, await scrape(), source);
     } catch (err) {
-        document.getElementById('live-elnashra').innerHTML = `<div class="error-msg">Failed to load: ${err.message}</div>`;
+        document.getElementById(panelId).innerHTML =
+            `<div class="error-msg">Failed to load: ${escapeHtml(err.message)}</div>`;
     }
 }
 
