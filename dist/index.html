@@ -345,8 +345,8 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
 }
 .modal-close {
     position: static;
-    font-size: 20px;
 }
+.modal-close svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
 .modal-close:hover { color: var(--accent); border-color: var(--accent); transform: rotate(90deg); }
 .reader-mode-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 .reader-mode-btn:hover { color: var(--accent); border-color: var(--accent); }
@@ -447,7 +447,9 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
                 <button id="readerModeBtn" class="reader-mode-btn" title="Reader mode">
                     <svg viewBox="0 0 24 24"><path d="M4 5.5c2-1 5-1.5 8-1.5s6 .5 8 1.5v13c-2-1-5-1.5-8-1.5s-6 .5-8 1.5v-13Z"/><path d="M12 4v15"/></svg>
                 </button>
-                <button id="modalClose" class="modal-close">&times;</button>
+                <button id="modalClose" class="modal-close">
+                    <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>
+                </button>
             </div>
             <div id="modalBody" class="modal-body reader">
                 <div class="loading">Loading article…</div>
