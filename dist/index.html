@@ -110,6 +110,33 @@ main#app { padding: 24px; }
 .exclusive-col .card h3 { font-size: 14px; }
 .exclusive-col .card .body { padding: 10px 12px; }
 
+.tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+.tab-btn {
+    flex: 1;
+    padding: 8px 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.tab-btn:hover { border-color: var(--accent); }
+.tab-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: flex; }
+
 .live-list {
     display: flex;
     flex-direction: column;
@@ -212,7 +239,12 @@ main#app { padding: 24px; }
 
             <section class="col live-col">
                 <h2 class="section-title">Live News</h2>
-                <div id="live" class="live-list"></div>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="tayyar">Tayyar</button>
+                    <button class="tab-btn" data-tab="elnashra">Elnashra</button>
+                </div>
+                <div id="live-tayyar" class="live-list tab-panel active"></div>
+                <div id="live-elnashra" class="live-list tab-panel"></div>
             </section>
 
             <section class="col exclusive-col">
@@ -234,9 +266,11 @@ main#app { padding: 24px; }
 
 <script>
 const BASE_URL = 'https://www.tayyar.org';
-// tayyar.org sends no CORS headers, so a direct fetch() from the local file
-// will fail. We try a direct fetch first, then fall back to a public CORS
-// proxy that mirrors the raw HTML response.
+const ELNASHRA_BASE_URL = 'https://www.elnashra.com';
+// Both sites send no CORS headers (elnashra also uses a Cloudflare bot
+// challenge), so a direct fetch() from the local file will usually fail.
+// We try a direct fetch first, then fall back to public CORS proxies that
+// mirror the raw HTML response.
 const CORS_PROXIES = [
     (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
     (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
@@ -257,9 +291,9 @@ async function fetchHtml(url) {
     throw new Error('Unable to fetch content (direct and proxy attempts failed)');
 }
 
-function absUrl(href) {
+function absUrl(href, base) {
     if (!href) return null;
-    return href.startsWith('http') ? href : BASE_URL + href;
+    return href.startsWith('http') ? href : (base || BASE_URL) + href;
 }
 
 function parseHtml(html) {
@@ -351,7 +385,50 @@ async function scrapeArticle(url) {
     return { title, image, date, tags, body, url };
 }
 
-// ---- Rendering ----
+async function scrapeElnashraLive() {
+    const html = await fetchHtml(ELNASHRA_BASE_URL + '/');
+    const doc = parseHtml(html);
+
+    const live = [];
+    doc.querySelectorAll('.unread-news .listnews.collapse > li.item').forEach(el => {
+        const link = el.querySelector('a.newstitle');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href') || el.getAttribute('data-url'), ELNASHRA_BASE_URL);
+        const title = link.getAttribute('title') || text(link.querySelector('.item-title'));
+        if (href && title) {
+            live.push({ id: el.getAttribute('data-newsid') || href, title, url: href, isElnashra: true });
+        }
+    });
+
+    return live;
+}
+
+async function scrapeElnashraArticle(url) {
+    const html = await fetchHtml(url);
+    const doc = parseHtml(html);
+
+    const titleEl = doc.querySelector('h1[itemprop="headline"]') || doc.querySelector('h1.topTitle');
+    const title = text(titleEl);
+
+    const dateEl = doc.querySelector('.desktop-date');
+    const date = dateEl ? text(dateEl) : '';
+
+    const tagEl = doc.querySelector('.categoryName');
+    const tags = tagEl ? [text(tagEl)] : [];
+
+    const metaImg = doc.querySelector('meta[property="og:image"]') || doc.querySelector('meta[itemprop="image"]');
+    const image = metaImg ? metaImg.getAttribute('content') : null;
+
+    const bodyEl = doc.querySelector('.articleBody');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style, .ad-container, [id^="div-gpt-ad"], .inread-video').forEach(n => n.remove());
+        body = clone.textContent.replace(/\s+\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
+    }
+
+    return { title, image, date, tags, body, url };
+}
 
 const loadingEl = document.getElementById('loading');
 const contentEl = document.getElementById('content');
@@ -368,7 +445,7 @@ function escapeHtml(str) {
 
 function attachClicks(container) {
     container.querySelectorAll('[data-url]').forEach(node => {
-        node.addEventListener('click', () => openArticle(decodeURIComponent(node.dataset.url)));
+        node.addEventListener('click', () => openArticle(decodeURIComponent(node.dataset.url), node.dataset.source));
     });
 }
 
@@ -401,7 +478,7 @@ function renderExclusive(items) {
 }
 
 function renderLive(items) {
-    const el = document.getElementById('live');
+    const el = document.getElementById('live-tayyar');
     el.innerHTML = items.map(item => `
         <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}"` : 'style="cursor:default"'}>
             <div class="time">${escapeHtml(item.time || '')}</div>
@@ -412,11 +489,23 @@ function renderLive(items) {
     attachClicks(el);
 }
 
-async function openArticle(url) {
+function renderElnashraLive(items) {
+    const el = document.getElementById('live-elnashra');
+    el.innerHTML = items.map(item => `
+        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}" data-source="elnashra"` : 'style="cursor:default"'}>
+            <div class="title">${escapeHtml(item.title)}</div>
+            ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+async function openArticle(url, source) {
     modal.classList.remove('hidden');
     modalBody.innerHTML = '<div class="loading">Loading article…</div>';
     try {
-        const data = await scrapeArticle(url);
+        const data = source === 'elnashra' ? await scrapeElnashraArticle(url) : await scrapeArticle(url);
+        const siteName = source === 'elnashra' ? 'elnashra.com' : 'tayyar.org';
         modalBody.innerHTML = `
             <h2 class="article-title">${escapeHtml(data.title)}</h2>
             <div class="article-meta">
@@ -425,7 +514,7 @@ async function openArticle(url) {
             </div>
             ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
             <div class="article-body">${escapeHtml(data.body)}</div>
-            <p><a href="${url}" target="_blank" rel="noopener">View original on tayyar.org</a></p>
+            <p><a href="${url}" target="_blank" rel="noopener">View original on ${siteName}</a></p>
         `;
     } catch (err) {
         modalBody.innerHTML = `<div class="error-msg">Failed to load article: ${err.message}</div>`;
@@ -440,6 +529,15 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.getElementById('live-tayyar').classList.toggle('active', tab === 'tayyar');
+        document.getElementById('live-elnashra').classList.toggle('active', tab === 'elnashra');
+    });
+});
+
 async function loadHome() {
     loadingEl.style.display = 'block';
     contentEl.style.display = 'none';
@@ -452,6 +550,15 @@ async function loadHome() {
         contentEl.style.display = 'grid';
     } catch (err) {
         loadingEl.innerHTML = `<div class="error-msg">Failed to load news: ${err.message}</div>`;
+        return;
+    }
+
+    // Elnashra tab loads independently so a failure there doesn't block the main content.
+    try {
+        const elnashraLive = await scrapeElnashraLive();
+        renderElnashraLive(elnashraLive);
+    } catch (err) {
+        document.getElementById('live-elnashra').innerHTML = `<div class="error-msg">Failed to load: ${err.message}</div>`;
     }
 }
 
