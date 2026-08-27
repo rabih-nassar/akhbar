@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Akhbar.FYI — النشرة</title>
+<style>
+:root {
+    --bg: #f5f6f8;
+    --panel: #ffffff;
+    --accent: #e63946;
+    --text: #1c1e21;
+    --muted: #6b7280;
+    --border: #e2e5e9;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+
+.site-header {
+    background: var(--panel);
+    padding: 18px 28px;
+    border-bottom: 3px solid var(--accent);
+}
+.site-header h1 { margin: 0; font-size: 22px; }
+.site-header h1 span { font-size: 14px; color: var(--muted); font-weight: normal; }
+
+main#app { padding: 24px; max-width: 760px; margin: 0 auto; }
+
+.loading {
+    text-align: center;
+    padding: 60px;
+    color: var(--muted);
+    font-size: 16px;
+}
+
+.section-title {
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+}
+
+.news-list {
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.news-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+}
+.news-item:last-child { border-bottom: none; }
+.news-item:hover { background: #f2f3f5; }
+.news-item .title { font-size: 15px; line-height: 1.5; flex: 1; }
+.news-item .clickable-icon {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+.modal.hidden { display: none; }
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+}
+.modal-panel {
+    position: relative;
+    background: var(--panel);
+    border-radius: 12px;
+    max-width: 720px;
+    width: 92%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 30px;
+    border: 1px solid var(--border);
+}
+.modal-close {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 26px;
+    cursor: pointer;
+}
+.modal-close:hover { color: var(--accent); }
+
+.article-title { font-size: 22px; margin: 6px 0 10px; }
+.article-meta { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+.article-meta .tag {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    margin-inline-end: 6px;
+}
+.article-image { width: 100%; border-radius: 8px; margin-bottom: 16px; }
+.article-body { line-height: 1.9; font-size: 16px; white-space: pre-wrap; }
+.error-msg { color: var(--accent); text-align: center; padding: 40px; }
+</style>
+</head>
+<body>
+    <header class="site-header">
+        <h1>Akhbar.FYI <span>— أخبار لم تقرأها من elnashra.com</span></h1>
+    </header>
+
+    <main id="app">
+        <div id="loading" class="loading">Loading latest news…</div>
+        <div id="content" style="display:none">
+            <h2 class="section-title">أخبار لم تقرأها</h2>
+            <div id="unread" class="news-list"></div>
+        </div>
+    </main>
+
+    <div id="modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="modal-panel">
+            <button id="modalClose" class="modal-close">&times;</button>
+            <div id="modalBody" class="modal-body">
+                <div class="loading">Loading article…</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const BASE_URL = 'https://www.elnashra.com';
+// elnashra.com sends no CORS headers and uses a Cloudflare bot challenge on
+// some requests, so a direct fetch() from a local file will usually fail.
+// We try a direct fetch first, then fall back to public CORS proxies that
+// mirror the raw HTML response.
+const CORS_PROXIES = [
+    (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+async function fetchHtml(url) {
+    try {
+        const res = await fetch(url, { mode: 'cors' });
+        if (res.ok) return await res.text();
+    } catch (e) { /* fall through to proxies */ }
+
+    for (const buildProxyUrl of CORS_PROXIES) {
+        try {
+            const res = await fetch(buildProxyUrl(url));
+            if (res.ok) return await res.text();
+        } catch (e) { /* try next proxy */ }
+    }
+    throw new Error('Unable to fetch content (direct and proxy attempts failed)');
+}
+
+function absUrl(href) {
+    if (!href) return null;
+    return href.startsWith('http') ? href : BASE_URL + href;
+}
+
+function parseHtml(html) {
+    return new DOMParser().parseFromString(html, 'text/html');
+}
+
+function text(el) {
+    return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+}
+
+/**
+ * Scrapes the "أخبار لم تقرأها" (unread news) section from the homepage.
+ */
+async function scrapeUnreadNews() {
+    const html = await fetchHtml(BASE_URL + '/');
+    const doc = parseHtml(html);
+
+    const unread = [];
+    doc.querySelectorAll('.unread-news .listnews.collapse > li.item').forEach(el => {
+        const link = el.querySelector('a.newstitle');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href') || el.getAttribute('data-url'));
+        const title = link.getAttribute('title') || text(link.querySelector('.item-title'));
+        if (href && title) {
+            unread.push({ id: el.getAttribute('data-newsid') || href, title, url: href });
+        }
+    });
+
+    return unread;
+}
+
+/**
+ * Scrapes a single article page given its full URL.
+ */
+async function scrapeArticle(url) {
+    const html = await fetchHtml(url);
+    const doc = parseHtml(html);
+
+    const titleEl = doc.querySelector('h1[itemprop="headline"]') || doc.querySelector('h1.topTitle');
+    const title = text(titleEl);
+
+    const dateEl = doc.querySelector('.desktop-date');
+    const date = dateEl ? text(dateEl) : '';
+
+    const tagEl = doc.querySelector('.categoryName');
+    const tags = tagEl ? [text(tagEl)] : [];
+
+    const metaImg = doc.querySelector('meta[property="og:image"]') || doc.querySelector('meta[itemprop="image"]');
+    const image = metaImg ? metaImg.getAttribute('content') : null;
+
+    const bodyEl = doc.querySelector('.articleBody');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style, .ad-container, [id^="div-gpt-ad"], .inread-video').forEach(n => n.remove());
+        body = clone.textContent.replace(/\s+\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
+// ---- Rendering ----
+
+const loadingEl = document.getElementById('loading');
+const contentEl = document.getElementById('content');
+const modal = document.getElementById('modal');
+const modalBody = document.getElementById('modalBody');
+const modalClose = document.getElementById('modalClose');
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+function attachClicks(container) {
+    container.querySelectorAll('[data-url]').forEach(node => {
+        node.addEventListener('click', () => openArticle(decodeURIComponent(node.dataset.url)));
+    });
+}
+
+function renderUnread(items) {
+    const el = document.getElementById('unread');
+    el.innerHTML = items.map(item => `
+        <div class="news-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}"` : 'style="cursor:default"'}>
+            <div class="title">${escapeHtml(item.title)}</div>
+            ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+async function openArticle(url) {
+    modal.classList.remove('hidden');
+    modalBody.innerHTML = '<div class="loading">Loading article…</div>';
+    try {
+        const data = await scrapeArticle(url);
+        modalBody.innerHTML = `
+            <h2 class="article-title">${escapeHtml(data.title)}</h2>
+            <div class="article-meta">
+                ${(data.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+                ${data.date ? escapeHtml(data.date) : ''}
+            </div>
+            ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
+            <div class="article-body">${escapeHtml(data.body)}</div>
+            <p><a href="${url}" target="_blank" rel="noopener">View original on elnashra.com</a></p>
+        `;
+    } catch (err) {
+        modalBody.innerHTML = `<div class="error-msg">Failed to load article: ${err.message}</div>`;
+    }
+}
+
+modalClose.addEventListener('click', () => modal.classList.add('hidden'));
+modal.querySelector('.modal-backdrop').addEventListener('click', () => modal.classList.add('hidden'));
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+    }
+});
+
+async function loadHome() {
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    try {
+        const unread = await scrapeUnreadNews();
+        renderUnread(unread);
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'block';
+    } catch (err) {
+        loadingEl.innerHTML = `<div class="error-msg">Failed to load news: ${err.message}</div>`;
+    }
+}
+
+loadHome();
+</script>
+</body>
+</html>
