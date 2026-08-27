@@ -24,12 +24,17 @@ body {
 }
 
 .site-header {
-    background: var(--panel);
-    padding: 18px 28px;
-    border-bottom: 3px solid var(--accent);
+    background: #000;
+    padding: 22px 28px;
+    text-align: center;
 }
-.site-header h1 { margin: 0; font-size: 22px; }
-.site-header h1 span { font-size: 14px; color: var(--muted); font-weight: normal; }
+.site-header h1 {
+    margin: 0;
+    font-size: 26px;
+    text-transform: lowercase;
+    color: #fff;
+    letter-spacing: 2px;
+}
 
 main#app { padding: 24px; }
 
@@ -226,7 +231,7 @@ main#app { padding: 24px; }
 </head>
 <body>
     <header class="site-header">
-        <h1>Akhbar.FYI <span>— live digest from tayyar.org</span></h1>
+        <h1>Akhbar.FYI</h1>
     </header>
 
     <main id="app">
