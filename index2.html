@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Akhbar.FYI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;900&family=Zilla+Slab:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: oklch(97.5% 0.004 80);
+    --panel: oklch(99% 0.002 80);
+    --accent: oklch(52% 0.19 25);
+    --accent-ink: oklch(98% 0.01 25);
+    --ink: oklch(20% 0.01 80);
+    --muted: oklch(48% 0.015 80);
+    --border: oklch(90% 0.006 80);
+    --rule: oklch(85% 0.008 80);
+    --ease: cubic-bezier(.16,1,.3,1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Noto Kufi Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Masthead ---------- */
+.site-header {
+    background: var(--accent);
+    padding: 20px 28px 16px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 1px 0 oklch(40% 0.16 25 / .5);
+}
+.site-header .masthead-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+.site-header h1 {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 900;
+    text-transform: lowercase;
+    color: var(--accent-ink);
+    letter-spacing: 1px;
+}
+.masthead-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: oklch(94% 0.03 25);
+    letter-spacing: .3px;
+}
+.masthead-meta .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: oklch(94% 0.03 25);
+    display: inline-block;
+    margin-inline-end: 6px;
+    animation: pulse-dot 1.8s var(--ease) infinite;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .35; transform: scale(.8); }
+}
+.masthead-rule {
+    height: 1px;
+    max-width: 1180px;
+    margin: 14px auto 0;
+    background: linear-gradient(90deg, transparent, oklch(94% 0.03 25 / .5), transparent);
+}
+
+main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
+
+.loading {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+    font-size: 15px;
+}
+.loading::before {
+    content: '';
+    display: block;
+    width: 22px; height: 22px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 0;
+    align-items: start;
+}
+.col {
+    padding: 0 26px;
+    position: relative;
+    animation: rise .5s var(--ease) both;
+}
+.col + .col { border-inline-start: 1px solid var(--rule); }
+@keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.featured-col { animation-delay: 0s; }
+.live-col { animation-delay: .06s; }
+.exclusive-col { animation-delay: .12s; }
+
+@media (max-width: 1000px) {
+    .grid { grid-template-columns: 1fr; }
+    .col + .col { border-inline-start: none; border-top: 1px solid var(--rule); padding-top: 28px; margin-top: 28px; }
+    .live-col { order: 1; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
+    .featured-col { order: 2; }
+    .exclusive-col { order: 3; }
+}
+
+.section-title {
+    font-family: "Zilla Slab", Georgia, serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 20px;
+    color: var(--ink);
+    padding-bottom: 10px;
+    margin: 0 0 18px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+.section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+    transform: translateY(-4px);
+}
+.section-title .mark { color: var(--accent); font-style: normal; }
+
+.cards { display: flex; flex-direction: column; gap: 18px; }
+
+.featured-col .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+}
+
+.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s var(--ease);
+}
+.card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 14px 28px -14px oklch(52% 0.19 25 / .35);
+}
+
+.card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+    background: var(--border);
+    transition: transform .5s var(--ease);
+}
+.card:hover img { transform: scale(1.04); }
+
+.featured-col .card img {
+    aspect-ratio: 1 / 1;
+    height: auto;
+}
+
+.card .body { padding: 12px 14px 15px; }
+.card .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 7px;
+    letter-spacing: .8px;
+    font-weight: 700;
+}
+.card .tag::before { content: '—'; margin-inline-end: 5px; }
+.card h3 { font-family: "Zilla Slab", Georgia, serif; font-weight: 600; font-size: 16px; margin: 0; line-height: 1.45; }
+.featured-col .card h3 { font-size: 14px; }
+.featured-col .card .body { padding: 9px 11px 13px; }
+
+.exclusive-col .card h3 { font-size: 15px; }
+.exclusive-col .card .body { padding: 11px 13px; }
+
+.tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--rule);
+}
+.tab-btn {
+    flex: 1;
+    padding: 9px 10px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color .2s var(--ease), border-color .2s var(--ease);
+    margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.tab-panel.active { display: flex; }
+.tab-panel:not(.active) { display: none !important; }
+
+.live-list {
+    display: flex;
+    flex-direction: column;
+}
+.live-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 2px;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    transition: padding-inline-start .2s var(--ease), background .2s var(--ease);
+}
+.live-item:last-child { border-bottom: none; }
+.live-item:hover { padding-inline-start: 6px; background: oklch(96% 0.01 25 / .6); }
+.live-item .time {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 12.5px;
+    min-width: 40px;
+    font-variant-numeric: tabular-nums;
+}
+.live-item .title { font-size: 14px; line-height: 1.5; flex: 1; }
+.live-item .clickable-icon {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    opacity: .55;
+    transition: opacity .2s var(--ease), transform .2s var(--ease);
+}
+.live-item:hover .clickable-icon { opacity: 1; transform: translateX(-2px); }
+[dir="rtl"] .live-item:hover .clickable-icon { transform: translateX(2px); }
+
+/* ---------- Reader modal ---------- */
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 10px;
+    box-sizing: border-box;
+}
+.modal.hidden { display: none; }
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: oklch(15% 0.01 80 / .6);
+    backdrop-filter: blur(2px);
+}
+.reader-progress {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    z-index: 101;
+    background: transparent;
+}
+.reader-progress::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: var(--progress, 0%);
+    background: var(--accent);
+    transition: width .1s linear;
+}
+.modal-panel {
+    position: relative;
+    background: var(--panel);
+    border-radius: 6px;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    overflow-y: auto;
+    padding: 44px;
+    border: 1px solid var(--border);
+    box-sizing: border-box;
+    animation: modal-in .35s var(--ease);
+}
+@keyframes modal-in {
+    from { opacity: 0; transform: scale(.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+.modal-close {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease);
+}
+.modal-close:hover { color: var(--accent); border-color: var(--accent); transform: rotate(90deg); }
+
+.reader { max-width: 68ch; margin: 0 auto; }
+.article-title { font-family: "Zilla Slab", Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1.35; margin: 10px 0 14px; }
+.article-meta { color: var(--muted); font-size: 13px; margin-bottom: 26px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.article-meta .tag {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-radius: 4px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.article-image { width: 100%; border-radius: 6px; margin-bottom: 26px; display: block; }
+.article-body { line-height: 2; font-size: 17px; white-space: pre-wrap; }
+.article-body p { margin: 0 0 1.1em; }
+.reader-source {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+}
+.reader-source a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.reader-source a:hover { text-decoration: underline; }
+.error-msg { color: var(--accent); text-align: center; padding: 60px 20px; font-size: 15px; }
+</style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="masthead-inner">
+            <h1>Akhbar.FYI</h1>
+            <div class="masthead-meta">
+                <span><span class="dot"></span>مباشر</span>
+                <span id="todayDate"></span>
+            </div>
+        </div>
+        <div class="masthead-rule"></div>
+    </header>
+
+    <main id="app">
+        <div id="loading" class="loading">Loading latest news…</div>
+        <div id="content" class="grid" style="display:none">
+            <section class="col featured-col">
+                <h2 class="section-title"><span class="mark">TAYYAR</span> Featured News</h2>
+                <div id="featured" class="cards"></div>
+            </section>
+
+            <section class="col live-col">
+                <h2 class="section-title">Live News</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="tayyar">Tayyar</button>
+                    <button class="tab-btn" data-tab="elnashra">Elnashra</button>
+                </div>
+                <div id="live-tayyar" class="live-list tab-panel active"></div>
+                <div id="live-elnashra" class="live-list tab-panel"></div>
+            </section>
+
+            <section class="col exclusive-col">
+                <h2 class="section-title"><span class="mark">TAYYAR</span> Exclusive</h2>
+                <div id="exclusive" class="cards"></div>
+            </section>
+        </div>
+    </main>
+
+    <div id="modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="reader-progress" id="readerProgress"></div>
+        <div class="modal-panel" id="modalPanel">
+            <button id="modalClose" class="modal-close">&times;</button>
+            <div id="modalBody" class="modal-body reader">
+                <div class="loading">Loading article…</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+const BASE_URL = 'https://www.tayyar.org';
+const ELNASHRA_BASE_URL = 'https://www.elnashra.com';
+// Both sites send no CORS headers (elnashra also uses a Cloudflare bot
+// challenge), so a direct fetch() from the local file will usually fail.
+// We try a direct fetch first, then fall back to public CORS proxies that
+// mirror the raw HTML response.
+const CORS_PROXIES = [
+    (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+async function fetchHtml(url) {
+    try {
+        const res = await fetch(url, { mode: 'cors' });
+        if (res.ok) return await res.text();
+    } catch (e) { /* fall through to proxies */ }
+
+    for (const buildProxyUrl of CORS_PROXIES) {
+        try {
+            const res = await fetch(buildProxyUrl(url));
+            if (res.ok) return await res.text();
+        } catch (e) { /* try next proxy */ }
+    }
+    throw new Error('Unable to fetch content (direct and proxy attempts failed)');
+}
+
+function absUrl(href, base) {
+    if (!href) return null;
+    return href.startsWith('http') ? href : (base || BASE_URL) + href;
+}
+
+function parseHtml(html) {
+    return new DOMParser().parseFromString(html, 'text/html');
+}
+
+function text(el) {
+    return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+}
+
+async function scrapeHomepage() {
+    const html = await fetchHtml(BASE_URL + '/');
+    const doc = parseHtml(html);
+
+    const featured = [];
+    doc.querySelectorAll('.Featured .swiper-slide').forEach(el => {
+        const link = el.querySelector('a.item');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href'));
+        const title = text(link.querySelector('h3.caption'));
+        const image = link.querySelector('img') ? link.querySelector('img').getAttribute('src') : null;
+        const tagEl = link.querySelector('.nametag');
+        const tag = tagEl ? text(tagEl) : null;
+        if (href && title) {
+            featured.push({ id: el.getAttribute('data-article-id') || href, title, url: href, image, tag });
+        }
+    });
+
+    const exclusive = [];
+    doc.querySelectorAll('.Exclusive .list > li').forEach(el => {
+        const link = el.querySelector('a.item');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href'));
+        const title = text(link.querySelector('h3.caption'));
+        const image = link.querySelector('img') ? link.querySelector('img').getAttribute('src') : null;
+        if (href && title) {
+            exclusive.push({ id: href, title, url: href, image });
+        }
+    });
+
+    const live = [];
+    doc.querySelectorAll('#liveNewsList > li').forEach(el => {
+        const link = el.querySelector('a.news');
+        const href = link ? absUrl(link.getAttribute('href')) : null;
+        let title = '';
+        if (link) {
+            const caption = link.querySelector('h3.caption');
+            if (caption) {
+                const clone = caption.cloneNode(true);
+                clone.querySelectorAll('.more-link').forEach(n => n.remove());
+                title = text(clone);
+            }
+        }
+        const clockEl = el.querySelector('.clock');
+        const time = clockEl ? text(clockEl) : '';
+        if (title) {
+            live.push({ id: el.getAttribute('data-livearticle-id'), title, url: href, time });
+        }
+    });
+
+    return { featured, exclusive, live };
+}
+
+async function scrapeArticle(url) {
+    const html = await fetchHtml(url);
+    const doc = parseHtml(html);
+
+    const titleEl = doc.querySelector('#MainArticleTitle') || doc.querySelector('h1.title');
+    const title = text(titleEl);
+
+    const imgEl = doc.querySelector('.Article .photo img');
+    const metaImg = doc.querySelector('meta[itemprop="image"]');
+    const image = imgEl ? imgEl.getAttribute('src') : (metaImg ? metaImg.getAttribute('content') : null);
+
+    const dateEl = doc.querySelector('.Article .date');
+    const date = dateEl ? text(dateEl) : '';
+
+    const tags = [];
+    doc.querySelectorAll('.Article .taglist .nametag').forEach(el => tags.push(text(el)));
+
+    const bodyEl = doc.querySelector('.Article .text');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style').forEach(n => n.remove());
+        body = clone.textContent.replace(/\s+\n/g, '\n').trim();
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
+async function scrapeElnashraLive() {
+    const html = await fetchHtml(ELNASHRA_BASE_URL + '/');
+    const doc = parseHtml(html);
+
+    const live = [];
+    doc.querySelectorAll('.unread-news .listnews.collapse > li.item').forEach(el => {
+        const link = el.querySelector('a.newstitle');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href') || el.getAttribute('data-url'), ELNASHRA_BASE_URL);
+        const title = link.getAttribute('title') || text(link.querySelector('.item-title'));
+        if (href && title) {
+            live.push({ id: el.getAttribute('data-newsid') || href, title, url: href, isElnashra: true });
+        }
+    });
+
+    return live;
+}
+
+async function scrapeElnashraArticle(url) {
+    const html = await fetchHtml(url);
+    const doc = parseHtml(html);
+
+    const titleEl = doc.querySelector('h1[itemprop="headline"]') || doc.querySelector('h1.topTitle');
+    const title = text(titleEl);
+
+    const dateEl = doc.querySelector('.desktop-date');
+    const date = dateEl ? text(dateEl) : '';
+
+    const tagEl = doc.querySelector('.categoryName');
+    const tags = tagEl ? [text(tagEl)] : [];
+
+    const metaImg = doc.querySelector('meta[property="og:image"]') || doc.querySelector('meta[itemprop="image"]');
+    const image = metaImg ? metaImg.getAttribute('content') : null;
+
+    const bodyEl = doc.querySelector('.articleBody');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style, .ad-container, [id^="div-gpt-ad"], .inread-video').forEach(n => n.remove());
+        body = clone.textContent.replace(/\s+\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
+const loadingEl = document.getElementById('loading');
+const contentEl = document.getElementById('content');
+const modal = document.getElementById('modal');
+const modalBody = document.getElementById('modalBody');
+const modalClose = document.getElementById('modalClose');
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+function attachClicks(container) {
+    container.querySelectorAll('[data-url]').forEach(node => {
+        node.addEventListener('click', () => openArticle(decodeURIComponent(node.dataset.url), node.dataset.source));
+    });
+}
+
+function renderFeatured(items) {
+    const el = document.getElementById('featured');
+    el.innerHTML = items.map(item => `
+        <div class="card" data-url="${encodeURIComponent(item.url)}">
+            ${item.image ? `<img src="${item.image}" alt="">` : ''}
+            <div class="body">
+                ${item.tag ? `<span class="tag">${escapeHtml(item.tag)}</span>` : ''}
+                <h3>${escapeHtml(item.title)}</h3>
+            </div>
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+function renderExclusive(items) {
+    const el = document.getElementById('exclusive');
+    el.innerHTML = items.map(item => `
+        <div class="card" data-url="${encodeURIComponent(item.url)}">
+            ${item.image ? `<img src="${item.image}" alt="">` : ''}
+            <div class="body">
+                <span class="tag">Exclusive</span>
+                <h3>${escapeHtml(item.title)}</h3>
+            </div>
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+function renderLive(items) {
+    const el = document.getElementById('live-tayyar');
+    el.innerHTML = items.map(item => `
+        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}"` : 'style="cursor:default"'}>
+            <div class="time">${escapeHtml(item.time || '')}</div>
+            <div class="title">${escapeHtml(item.title)}</div>
+            ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+function renderElnashraLive(items) {
+    const el = document.getElementById('live-elnashra');
+    el.innerHTML = items.map(item => `
+        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}" data-source="elnashra"` : 'style="cursor:default"'}>
+            <div class="title">${escapeHtml(item.title)}</div>
+            ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+const modalPanel = document.getElementById('modalPanel');
+const readerProgress = document.getElementById('readerProgress');
+
+function updateReaderProgress() {
+    const max = modalPanel.scrollHeight - modalPanel.clientHeight;
+    const pct = max > 0 ? (modalPanel.scrollTop / max) * 100 : 0;
+    readerProgress.style.setProperty('--progress', pct + '%');
+}
+modalPanel.addEventListener('scroll', updateReaderProgress);
+
+async function openArticle(url, source) {
+    modal.classList.remove('hidden');
+    modalPanel.scrollTop = 0;
+    readerProgress.style.setProperty('--progress', '0%');
+    modalBody.innerHTML = '<div class="loading">Loading article…</div>';
+    try {
+        const data = source === 'elnashra' ? await scrapeElnashraArticle(url) : await scrapeArticle(url);
+        const siteName = source === 'elnashra' ? 'elnashra.com' : 'tayyar.org';
+        const paragraphs = (data.body || '').split(/\n+/).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`).join('');
+        modalBody.innerHTML = `
+            <h2 class="article-title">${escapeHtml(data.title)}</h2>
+            <div class="article-meta">
+                ${(data.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+                ${data.date ? escapeHtml(data.date) : ''}
+            </div>
+            ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
+            <div class="article-body">${paragraphs}</div>
+            <div class="reader-source"><a href="${url}" target="_blank" rel="noopener">View original on ${siteName} ←</a></div>
+        `;
+        updateReaderProgress();
+    } catch (err) {
+        modalBody.innerHTML = `<div class="error-msg">Failed to load article: ${err.message}</div>`;
+    }
+}
+
+modalClose.addEventListener('click', () => modal.classList.add('hidden'));
+modal.querySelector('.modal-backdrop').addEventListener('click', () => modal.classList.add('hidden'));
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        modal.classList.add('hidden');
+    }
+});
+
+const todayDateEl = document.getElementById('todayDate');
+if (todayDateEl) {
+    todayDateEl.textContent = new Date().toLocaleDateString('ar-LB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b === btn));
+        document.getElementById('live-tayyar').classList.toggle('active', tab === 'tayyar');
+        document.getElementById('live-elnashra').classList.toggle('active', tab === 'elnashra');
+    });
+});
+
+async function loadHome() {
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    try {
+        const data = await scrapeHomepage();
+        renderFeatured(data.featured);
+        renderExclusive(data.exclusive);
+        renderLive(data.live);
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'grid';
+    } catch (err) {
+        loadingEl.innerHTML = `<div class="error-msg">Failed to load news: ${err.message}</div>`;
+        return;
+    }
+
+    // Elnashra tab loads independently so a failure there doesn't block the main content.
+    try {
+        const elnashraLive = await scrapeElnashraLive();
+        renderElnashraLive(elnashraLive);
+    } catch (err) {
+        document.getElementById('live-elnashra').innerHTML = `<div class="error-msg">Failed to load: ${err.message}</div>`;
+    }
+}
+
+loadHome();
+</script>
+</body>
+</html>
