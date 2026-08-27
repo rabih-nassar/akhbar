@@ -33,7 +33,7 @@ body {
 /* ---------- Masthead ---------- */
 .site-header {
     background: var(--accent);
-    padding: 20px 28px 16px;
+    padding: 9px 28px;
     text-align: center;
     position: relative;
     box-shadow: 0 1px 0 oklch(40% 0.16 25 / .5);
@@ -49,17 +49,17 @@ body {
 }
 .site-header h1 {
     margin: 0;
-    font-size: 30px;
+    font-size: 20px;
     font-weight: 900;
     text-transform: lowercase;
     color: var(--accent-ink);
-    letter-spacing: 1px;
+    letter-spacing: .5px;
 }
 .masthead-meta {
     display: flex;
     align-items: center;
     gap: 16px;
-    font-size: 12px;
+    font-size: 11px;
     color: oklch(94% 0.03 25);
     letter-spacing: .3px;
 }
@@ -74,12 +74,6 @@ body {
 @keyframes pulse-dot {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: .35; transform: scale(.8); }
-}
-.masthead-rule {
-    height: 1px;
-    max-width: 1180px;
-    margin: 14px auto 0;
-    background: linear-gradient(90deg, transparent, oklch(94% 0.03 25 / .5), transparent);
 }
 
 main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
@@ -379,7 +373,6 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
                 <span id="todayDate"></span>
             </div>
         </div>
-        <div class="masthead-rule"></div>
     </header>
 
     <main id="app">
