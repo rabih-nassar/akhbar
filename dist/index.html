@@ -538,13 +538,21 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
 <script>
 const BASE_URL = 'https://www.tayyar.org';
 const ELNASHRA_BASE_URL = 'https://www.elnashra.com';
-// Both sites send no CORS headers (elnashra also uses a Cloudflare bot
-// challenge), so a direct fetch() from the local file will usually fail.
-// We try a direct fetch first, then fall back to public CORS proxies that
-// mirror the raw HTML response.
+// tayyar.org sends Access-Control-Allow-Origin, so a direct fetch works.
+// elnashra.com and lebanondebate.com don't, so those reads go through a proxy:
+//
+//   1. /proxy on this origin — our own Worker (see worker/index.mjs). No rate
+//      limit, but it only exists on the deployed site, so it is skipped when
+//      running from file:// or a plain static server.
+//   2. r.jina.ai — renders the page in a real browser, which is currently the
+//      only way past elnashra.com's Cloudflare bot challenge. The free tier
+//      allows 20 requests/minute.
+//
+// (The previous proxies both died: corsproxy.io now requires a paid API key
+// and api.allorigins.win returns 522.)
 const CORS_PROXIES = [
-    (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    (url) => ({ url: `/proxy?url=${encodeURIComponent(url)}` }),
+    (url) => ({ url: `https://r.jina.ai/${url}`, options: { headers: { 'X-Return-Format': 'html' } } }),
 ];
 
 async function fetchHtml(url) {
@@ -553,9 +561,10 @@ async function fetchHtml(url) {
         if (res.ok) return await res.text();
     } catch (e) { /* fall through to proxies */ }
 
-    for (const buildProxyUrl of CORS_PROXIES) {
+    for (const buildProxy of CORS_PROXIES) {
         try {
-            const res = await fetch(buildProxyUrl(url));
+            const proxy = buildProxy(url);
+            const res = await fetch(proxy.url, proxy.options);
             if (res.ok) return await res.text();
         } catch (e) { /* try next proxy */ }
     }
