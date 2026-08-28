@@ -108,7 +108,7 @@ body {
     50% { opacity: .35; transform: scale(.8); }
 }
 
-main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
+main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
 
 .loading {
     text-align: center;
@@ -130,7 +130,7 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
 
 .grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1.15fr 1fr;
     gap: 0;
     align-items: start;
 }
@@ -139,14 +139,30 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
     position: relative;
     animation: rise .5s var(--ease) both;
 }
+.col + .col { border-inline-start: 1px solid var(--rule); }
 @keyframes rise {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+.featured-col { animation-delay: 0s; }
+.live-col { animation-delay: .06s; }
+.exclusive-col { animation-delay: .12s; }
 
 @media (max-width: 1000px) {
     main#app { padding: 32px 12px 60px; }
+    .grid { grid-template-columns: 1fr; }
     .col { padding: 0 13px; }
+    .col + .col { border-inline-start: none; border-top: 1px solid var(--rule); padding-top: 28px; margin-top: 28px; }
+    .live-col { order: 1; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
+    .featured-col { order: 2; }
+    .exclusive-col { order: 3; }
+}
+
+/* Wide screens: page spans edge-to-edge, side columns keep a fixed
+   comfortable width, and Live News expands to fill all remaining space. */
+@media (min-width: 1300px) {
+    main#app { max-width: none; }
+    .grid { grid-template-columns: 340px 1fr 340px; }
 }
 
 @media (max-width: 700px) {
@@ -156,7 +172,6 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
     .col { min-width: 0; }
     .tabs { overflow-x: auto; scrollbar-width: none; min-width: 0; }
     .tab-btn { flex: 0 0 auto; font-size: 12px; padding: 9px 10px; }
-
     .site-header .masthead-inner { position: static; }
     .masthead-meta {
         position: static;
@@ -165,6 +180,85 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
         margin-top: 4px;
     }
 }
+
+.section-title {
+    font-family: "Noto Kufi Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--ink);
+    padding-bottom: 10px;
+    margin: 0 0 18px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+.section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+    transform: translateY(-3px);
+}
+.section-title .mark { color: var(--accent); font-style: normal; }
+
+.cards { display: flex; flex-direction: column; gap: 18px; }
+
+.featured-col .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+}
+
+.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s var(--ease);
+}
+.card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 14px 28px -14px oklch(52% 0.19 25 / .35);
+}
+
+.card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+    background: var(--border);
+    transition: transform .5s var(--ease);
+}
+.card:hover img { transform: scale(1.04); }
+
+.featured-col .card img {
+    aspect-ratio: 1 / 1;
+    height: auto;
+}
+
+.card .body { padding: 12px 14px 15px; }
+.card .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 7px;
+    letter-spacing: .8px;
+    font-weight: 700;
+}
+.card .tag::before { content: '—'; margin-inline-end: 5px; }
+.card h3 { font-family: "Zilla Slab", Georgia, serif; font-weight: 600; font-size: 16px; margin: 0; line-height: 1.45; }
+.featured-col .card h3 { font-size: 14px; }
+.featured-col .card .body { padding: 9px 11px 13px; }
+
+.exclusive-col .card h3 { font-size: 15px; }
+.exclusive-col .card .body { padding: 11px 13px; }
 
 .tabs {
     display: flex;
@@ -224,18 +318,6 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
     unicode-bidi: isolate;
 }
 .live-item .title { font-size: 14px; line-height: 1.5; flex: 1; }
-.live-item .live-source {
-    flex-shrink: 0;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: .5px;
-    text-transform: uppercase;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    padding: 2px 8px;
-    white-space: nowrap;
-}
 .live-item .clickable-icon {
     flex-shrink: 0;
     color: var(--accent);
@@ -247,17 +329,6 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
 }
 .live-item:hover .clickable-icon { opacity: 1; transform: translateX(-2px); }
 [dir="rtl"] .live-item:hover .clickable-icon { transform: translateX(2px); }
-
-/* A source chip beside the headline leaves it too narrow on a phone, so wrap
-   the row: time and chip on the first line, headline across the full width.
-   This has to sit after the rules above to override .live-item .title's flex. */
-@media (max-width: 700px) {
-    .live-item { flex-wrap: wrap; row-gap: 6px; }
-    .live-item .time { order: 1; }
-    .live-item .live-source { order: 2; }
-    .live-item .clickable-icon { order: 3; margin-inline-start: auto; }
-    .live-item .title { order: 4; flex: 1 1 100%; }
-}
 
 /* ---------- Reader modal ---------- */
 .modal {
@@ -423,25 +494,33 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
     <main id="app">
         <div id="loading" class="loading">Loading latest news…</div>
         <div id="content" class="grid" style="display:none">
+            <section class="col featured-col">
+                <h2 class="section-title"><span class="mark">TAYYAR</span> Featured News</h2>
+                <div id="featured" class="cards"></div>
+            </section>
+
             <section class="col live-col">
                 <!-- The page is RTL, so the first button renders rightmost:
                      this order reads alphabetically from right to left. -->
                 <div class="tabs">
-                    <button class="tab-btn active" data-tab="all">All</button>
                     <button class="tab-btn" data-tab="elnashra">Elnashra</button>
                     <button class="tab-btn" data-tab="lbc">LBC</button>
                     <button class="tab-btn" data-tab="ldebate">Lebanon Debate</button>
                     <button class="tab-btn" data-tab="lfiles">Lebanon Files</button>
                     <button class="tab-btn" data-tab="mtv">MTV</button>
-                    <button class="tab-btn" data-tab="tayyar">Tayyar</button>
+                    <button class="tab-btn active" data-tab="tayyar">Tayyar</button>
                 </div>
-                <div id="live-all" class="live-list tab-panel active"><div class="loading">Loading…</div></div>
                 <div id="live-elnashra" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-lbc" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-ldebate" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-lfiles" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-mtv" class="live-list tab-panel"><div class="loading">Loading…</div></div>
-                <div id="live-tayyar" class="live-list tab-panel"><div class="loading">Loading…</div></div>
+                <div id="live-tayyar" class="live-list tab-panel active"></div>
+            </section>
+
+            <section class="col exclusive-col">
+                <h2 class="section-title"><span class="mark">TAYYAR</span> Exclusive</h2>
+                <div id="exclusive" class="cards"></div>
             </section>
         </div>
     </main>
@@ -547,10 +626,37 @@ function blockText(root) {
     return out.split('\n').map(line => line.trim()).filter(Boolean).join('\n');
 }
 
-async function scrapeTayyarLive() {
-    const doc = parseHtml(await fetchHtml(BASE_URL + '/'));
+async function scrapeHomepage() {
+    const html = await fetchHtml(BASE_URL + '/');
+    const doc = parseHtml(html);
 
-    const items = [];
+    const featured = [];
+    doc.querySelectorAll('.Featured .swiper-slide').forEach(el => {
+        const link = el.querySelector('a.item');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href'));
+        const title = text(link.querySelector('h3.caption'));
+        const image = link.querySelector('img') ? link.querySelector('img').getAttribute('src') : null;
+        const tagEl = link.querySelector('.nametag');
+        const tag = tagEl ? text(tagEl) : null;
+        if (href && title) {
+            featured.push({ id: el.getAttribute('data-article-id') || href, title, url: href, image, tag });
+        }
+    });
+
+    const exclusive = [];
+    doc.querySelectorAll('.Exclusive .list > li').forEach(el => {
+        const link = el.querySelector('a.item');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href'));
+        const title = text(link.querySelector('h3.caption'));
+        const image = link.querySelector('img') ? link.querySelector('img').getAttribute('src') : null;
+        if (href && title) {
+            exclusive.push({ id: href, title, url: href, image });
+        }
+    });
+
+    const live = [];
     doc.querySelectorAll('#liveNewsList > li').forEach(el => {
         const link = el.querySelector('a.news');
         const href = link ? absUrl(link.getAttribute('href')) : null;
@@ -563,16 +669,14 @@ async function scrapeTayyarLive() {
                 title = text(clone);
             }
         }
-        // The clock markup puts a space before the colon ("12 :43"), which the
-        // aggregate list can't parse, so squeeze the whitespace out.
         const clockEl = el.querySelector('.clock');
-        const time = clockEl ? text(clockEl).replace(/\s+/g, '') : '';
+        const time = clockEl ? text(clockEl) : '';
         if (title) {
-            items.push({ id: el.getAttribute('data-livearticle-id'), title, url: href, time });
+            live.push({ id: el.getAttribute('data-livearticle-id'), title, url: href, time });
         }
     });
 
-    return items;
+    return { featured, exclusive, live };
 }
 
 async function scrapeArticle(url) {
@@ -1028,23 +1132,44 @@ function attachClicks(container) {
     });
 }
 
+function renderFeatured(items) {
+    const el = document.getElementById('featured');
+    el.innerHTML = items.map(item => `
+        <div class="card" data-url="${encodeURIComponent(item.url)}">
+            ${item.image ? `<img src="${item.image}" alt="">` : ''}
+            <div class="body">
+                ${item.tag ? `<span class="tag">${escapeHtml(item.tag)}</span>` : ''}
+                <h3>${escapeHtml(item.title)}</h3>
+            </div>
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+function renderExclusive(items) {
+    const el = document.getElementById('exclusive');
+    el.innerHTML = items.map(item => `
+        <div class="card" data-url="${encodeURIComponent(item.url)}">
+            ${item.image ? `<img src="${item.image}" alt="">` : ''}
+            <div class="body">
+                <span class="tag">Exclusive</span>
+                <h3>${escapeHtml(item.title)}</h3>
+            </div>
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
 function renderLiveList(panelId, items, source) {
     const el = document.getElementById(panelId);
-    el.innerHTML = items.map(item => {
-        // A per-source panel passes one source for the whole list; in the
-        // aggregate list every item carries its own.
-        const src = item.source || source;
-        const attrs = item.url
-            ? `data-url="${encodeURIComponent(item.url)}"${src ? ` data-source="${src}"` : ''}`
-            : 'style="cursor:default"';
-        return `
-        <div class="live-item" ${attrs}>
+    const sourceAttr = source ? ` data-source="${source}"` : '';
+    el.innerHTML = items.map(item => `
+        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}"${sourceAttr}` : 'style="cursor:default"'}>
             <div class="time">${escapeHtml(item.time || '')}</div>
             <div class="title">${escapeHtml(item.title)}</div>
-            ${item.sourceLabel ? `<span class="live-source">${escapeHtml(item.sourceLabel)}</span>` : ''}
             ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
-        </div>`;
-    }).join('');
+        </div>
+    `).join('');
     attachClicks(el);
 }
 
@@ -1143,7 +1268,7 @@ const LIVE_TAB_KEY = 'akhbar-live-tab';
 
 function activateLiveTab(tab) {
     // Guard against a tab name saved by an older version of the page.
-    if (!document.querySelector(`.tab-btn[data-tab="${tab}"]`)) tab = 'all';
+    if (!document.querySelector(`.tab-btn[data-tab="${tab}"]`)) tab = 'tayyar';
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
     document.querySelectorAll('.live-col .tab-panel').forEach(p => p.classList.toggle('active', p.id === 'live-' + tab));
     localStorage.setItem(LIVE_TAB_KEY, tab);
@@ -1153,86 +1278,40 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => activateLiveTab(btn.dataset.tab));
 });
 
-activateLiveTab(localStorage.getItem(LIVE_TAB_KEY) || 'all');
-
-const LIVE_SOURCES = [
-    { key: 'tayyar', label: 'Tayyar', scrape: scrapeTayyarLive },
-    { key: 'elnashra', label: 'Elnashra', scrape: scrapeElnashraLive },
-    { key: 'ldebate', label: 'Lebanon Debate', scrape: scrapeLebanonDebateLive },
-    { key: 'lfiles', label: 'Lebanon Files', scrape: scrapeLebanonFilesLive },
-    { key: 'mtv', label: 'MTV', scrape: scrapeMtvLive },
-    { key: 'lbc', label: 'LBCI', scrape: scrapeLbcLive },
-];
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-
-// Only Elnashra and Lebanon Debate give a full date; the rest stamp items with
-// a bare HH:MM. Their lists arrive newest-first, so walk each one and step back
-// a day whenever the clock jumps forward — that means the list crossed midnight.
-function fillSortDates(items) {
-    const now = Date.now();
-    const today = new Date();
-    const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    let dayOffset = 0;
-    let prevMinutes = null;
-
-    items.forEach(item => {
-        if (item.sortDate) return;
-        const match = /(\d{1,2}):(\d{2})/.exec(item.time || '');
-        if (!match) { item.sortDate = 0; return; }
-
-        const minutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
-        if (prevMinutes !== null && minutes > prevMinutes) dayOffset += 1;
-        prevMinutes = minutes;
-
-        let ts = midnight - dayOffset * DAY_MS + minutes * 60000;
-        // A time later than right now can only be yesterday's.
-        if (ts > now + 60000) { dayOffset += 1; ts -= DAY_MS; }
-        item.sortDate = ts;
-    });
-
-    return items;
-}
-
-function renderAggregate(items) {
-    const el = document.getElementById('live-all');
-    if (!items.length) {
-        el.innerHTML = '<div class="error-msg">No news could be loaded.</div>';
-        return;
-    }
-    renderLiveList('live-all', items.slice().sort((a, b) => b.sortDate - a.sortDate));
-}
+activateLiveTab(localStorage.getItem(LIVE_TAB_KEY) || 'tayyar');
 
 async function loadHome() {
-    loadingEl.style.display = 'none';
-    contentEl.style.display = 'grid';
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    try {
+        const data = await scrapeHomepage();
+        renderFeatured(data.featured);
+        renderExclusive(data.exclusive);
+        renderLiveList('live-tayyar', data.live);
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'grid';
+    } catch (err) {
+        loadingEl.innerHTML = `<div class="error-msg">Failed to load news: ${err.message}</div>`;
+        return;
+    }
 
-    // Every source loads independently and in parallel, so one failure can't
-    // blank the page. The aggregate list is re-rendered as each source lands.
-    const aggregate = [];
-    let failures = 0;
+    // The secondary tabs load in parallel and independently, so a failure in
+    // one doesn't block the other or the main content.
+    await Promise.all([
+        loadLivePanel('live-elnashra', scrapeElnashraLive, 'elnashra'),
+        loadLivePanel('live-ldebate', scrapeLebanonDebateLive, 'ldebate'),
+        loadLivePanel('live-lfiles', scrapeLebanonFilesLive, 'lfiles'),
+        loadLivePanel('live-mtv', scrapeMtvLive, 'mtv'),
+        loadLivePanel('live-lbc', scrapeLbcLive, 'lbc'),
+    ]);
+}
 
-    await Promise.all(LIVE_SOURCES.map(async source => {
-        const panelId = 'live-' + source.key;
-        try {
-            const items = fillSortDates(await source.scrape());
-            renderLiveList(panelId, items, source.key);
-            items.forEach(item => {
-                if (item.url) {
-                    aggregate.push(Object.assign({}, item, { source: source.key, sourceLabel: source.label }));
-                }
-            });
-            renderAggregate(aggregate);
-        } catch (err) {
-            failures += 1;
-            document.getElementById(panelId).innerHTML =
-                `<div class="error-msg">Failed to load: ${escapeHtml(err.message)}</div>`;
-        }
-    }));
-
-    if (!aggregate.length) {
-        document.getElementById('live-all').innerHTML =
-            `<div class="error-msg">Failed to load news from all ${failures} sources.</div>`;
+async function loadLivePanel(panelId, scrape, source) {
+    try {
+        renderLiveList(panelId, await scrape(), source);
+    } catch (err) {
+        document.getElementById(panelId).innerHTML =
+            `<div class="error-msg">Failed to load: ${escapeHtml(err.message)}</div>`;
     }
 }
 
