@@ -274,6 +274,25 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
 
 .live-note { color: var(--muted); text-align: center; padding: 60px 20px; font-size: 14px; line-height: 1.6; }
 
+/* Phone: the article is a full-screen sheet you can throw away downwards and
+   page through sideways. touch-action:pan-y leaves vertical scrolling to the
+   browser and hands us every horizontal gesture. */
+@media (max-width: 700px) {
+    .modal { padding: 0; }
+    .modal-panel {
+        border-radius: 0;
+        border: none;
+        touch-action: pan-y;
+        overscroll-behavior-y: contain;
+    }
+    .modal-panel.swiping { transition: none; }
+    .modal-panel.settling {
+        transition: transform .2s var(--ease), opacity .2s var(--ease);
+    }
+    .modal-backdrop { transition: opacity .2s var(--ease); }
+    .modal-panel.swiping ~ .modal-backdrop { transition: none; }
+}
+
 .tab-panel.active { display: flex; }
 .tab-panel:not(.active) { display: none !important; }
 
@@ -1127,8 +1146,15 @@ function escapeHtml(str) {
 }
 
 function attachClicks(container) {
-    container.querySelectorAll('[data-url]').forEach(node => {
-        node.addEventListener('click', () => openArticle(decodeURIComponent(node.dataset.url), node.dataset.source));
+    // The whole panel becomes the article's context, so swiping can move to the
+    // next or previous row of the same list.
+    const nodes = Array.from(container.querySelectorAll('[data-url]'));
+    const list = nodes.map(node => ({
+        url: decodeURIComponent(node.dataset.url),
+        source: node.dataset.source,
+    }));
+    nodes.forEach((node, index) => {
+        node.addEventListener('click', () => openArticle(list, index));
     });
 }
 
@@ -1209,18 +1235,88 @@ const ARTICLE_SOURCES = {
     lbc: { scrape: scrapeLbcArticle, site: 'lbcgroup.tv' },
 };
 
-async function openArticle(url, source) {
+// Articles are fetched on demand, so paging into one that isn't loaded yet
+// would land on a spinner. Cache what we read and warm the neighbours.
+const articleCache = new Map();
+const ARTICLE_CACHE_MAX = 40;
+
+async function fetchArticle(url, source) {
+    if (articleCache.has(url)) return articleCache.get(url);
+
+    const handler = ARTICLE_SOURCES[source];
+    const data = handler ? await handler.scrape(url) : await scrapeArticle(url);
+    data.siteName = handler ? handler.site : 'tayyar.org';
+
+    articleCache.set(url, data);
+    if (articleCache.size > ARTICLE_CACHE_MAX) {
+        articleCache.delete(articleCache.keys().next().value);
+    }
+    return data;
+}
+
+function prefetchNeighbours(index) {
+    [index - 1, index + 1].forEach(i => {
+        const item = articleList[i];
+        if (item && !articleCache.has(item.url)) {
+            fetchArticle(item.url, item.source).catch(() => { /* warmed on demand instead */ });
+        }
+    });
+}
+
+let articleList = [];
+let articleIndex = -1;
+// True while our own history entry is on the stack, so closing can pop it.
+let articleStatePushed = false;
+let lockedScrollY = 0;
+
+function lockBodyScroll() {
+    lockedScrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${lockedScrollY}px`;
+    document.body.style.width = '100%';
+}
+
+function unlockBodyScroll() {
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    window.scrollTo(0, lockedScrollY);
+}
+
+function openArticle(list, index) {
+    const wasClosed = modal.classList.contains('hidden');
+    articleList = list;
+
     modal.classList.remove('hidden');
-    modalPanel.classList.remove('reader-mode');
-    modal.classList.remove('reader-active');
-    readerModeBtn.classList.remove('active');
+    if (wasClosed) {
+        lockBodyScroll();
+        modalPanel.classList.remove('reader-mode');
+        modal.classList.remove('reader-active');
+        readerModeBtn.classList.remove('active');
+        // One entry for "an article is open", not one per article: the back
+        // gesture should return to the list, not walk back through everything
+        // that was swiped past.
+        history.pushState({ akhbarArticle: true }, '');
+        articleStatePushed = true;
+    }
+    return showArticle(index);
+}
+
+async function showArticle(index) {
+    const item = articleList[index];
+    if (!item) return;
+    articleIndex = index;
+
     modalPanel.scrollTop = 0;
     readerProgress.style.setProperty('--progress', '0%');
-    modalBody.innerHTML = '<div class="loading">Loading article…</div>';
+    if (!articleCache.has(item.url)) {
+        modalBody.innerHTML = '<div class="loading">Loading article…</div>';
+    }
+
     try {
-        const handler = ARTICLE_SOURCES[source];
-        const data = handler ? await handler.scrape(url) : await scrapeArticle(url);
-        const siteName = handler ? handler.site : 'tayyar.org';
+        const data = await fetchArticle(item.url, item.source);
+        if (articleIndex !== index) return; // swiped on while this was loading
+
         // News flashes are headline-only, so say so rather than showing a blank body.
         const paragraphs = (data.body || '').split(/\n+/).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`).join('')
             || '<p>لا يتضمّن هذا الخبر نصّاً إضافيّاً.</p>';
@@ -1232,13 +1328,188 @@ async function openArticle(url, source) {
             </div>
             ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
             <div class="article-body">${paragraphs}</div>
-            <div class="reader-source"><a href="${url}" target="_blank" rel="noopener">View original on ${siteName} ←</a></div>
+            <div class="reader-source"><a href="${item.url}" target="_blank" rel="noopener">View original on ${data.siteName} ←</a></div>
         `;
         updateReaderProgress();
+        prefetchNeighbours(index);
     } catch (err) {
-        modalBody.innerHTML = `<div class="error-msg">Failed to load article: ${err.message}</div>`;
+        if (articleIndex !== index) return;
+        modalBody.innerHTML = `<div class="error-msg">Failed to load article: ${escapeHtml(err.message)}</div>`;
     }
 }
+
+function closeArticle(fromPopstate) {
+    if (modal.classList.contains('hidden')) return;
+
+    modal.classList.add('hidden');
+    resetPanelTransform();
+    unlockBodyScroll();
+    articleIndex = -1;
+
+    // Drop our history entry unless the pop is what closed us in the first place.
+    if (articleStatePushed && !fromPopstate) {
+        articleStatePushed = false;
+        history.back();
+    } else {
+        articleStatePushed = false;
+    }
+}
+
+// The back gesture and the Android back button both land here.
+window.addEventListener('popstate', () => {
+    if (!modal.classList.contains('hidden')) closeArticle(true);
+});
+
+/* ---------- Touch navigation (phones only) ----------
+ * Drag down from the top of the article to throw it away; drag sideways to
+ * page between the rows of the list it came from.
+ *
+ * The page is dir="rtl", so the next row sits to the LEFT: dragging right
+ * pulls it in, exactly like turning a page in an Arabic book.
+ *
+ * Dismissing sideways is deliberately not offered — on iOS the edge swipe is
+ * the system back gesture, which our popstate handler already turns into a
+ * close, and competing with it loses.
+ */
+const AXIS_LOCK = 8;        // px of travel before we decide what the gesture is
+const AXIS_BIAS = 1.3;      // how much more horizontal than vertical to page
+const PAGE_DISTANCE = 60;   // px to commit to the next article
+const DISMISS_DISTANCE = 110;
+const FLICK_VELOCITY = 0.45; // px/ms — a fast flick commits on its own
+const SETTLE_MS = 220;
+
+const modalBackdrop = modal.querySelector('.modal-backdrop');
+let touch = null;
+
+function onPhone() {
+    return window.matchMedia('(max-width: 700px)').matches;
+}
+
+function resetPanelTransform() {
+    modalPanel.classList.remove('swiping', 'settling');
+    modalPanel.style.transform = '';
+    modalPanel.style.opacity = '';
+    modalBackdrop.style.opacity = '';
+}
+
+// Transition to a transform and run `after` once it lands. transitionend can
+// be skipped when nothing actually changes, so a timer backs it up.
+function settlePanel(transform, opacity, after) {
+    modalPanel.classList.remove('swiping');
+    modalPanel.classList.add('settling');
+    modalPanel.style.transform = transform;
+    modalPanel.style.opacity = opacity;
+
+    let finished = false;
+    const done = () => {
+        if (finished) return;
+        finished = true;
+        modalPanel.removeEventListener('transitionend', done);
+        modalPanel.classList.remove('settling');
+        if (after) after();
+    };
+    modalPanel.addEventListener('transitionend', done);
+    setTimeout(done, SETTLE_MS + 60);
+}
+
+// Nothing to page to at this end of the list, so the drag drags heavily.
+function resist(distance) {
+    return distance * 0.28;
+}
+
+modalPanel.addEventListener('touchstart', (e) => {
+    if (!onPhone() || e.touches.length !== 1 || modal.classList.contains('hidden')) {
+        touch = null;
+        return;
+    }
+    const point = e.touches[0];
+    touch = {
+        x: point.clientX,
+        y: point.clientY,
+        startedAt: Date.now(),
+        axis: null,
+        dx: 0,
+        dy: 0,
+        atTop: modalPanel.scrollTop <= 0,
+    };
+}, { passive: true });
+
+modalPanel.addEventListener('touchmove', (e) => {
+    if (!touch || e.touches.length !== 1) return;
+    const point = e.touches[0];
+    touch.dx = point.clientX - touch.x;
+    touch.dy = point.clientY - touch.y;
+
+    if (!touch.axis) {
+        if (Math.abs(touch.dx) < AXIS_LOCK && Math.abs(touch.dy) < AXIS_LOCK) return;
+        if (Math.abs(touch.dx) > Math.abs(touch.dy) * AXIS_BIAS) touch.axis = 'page';
+        else if (touch.dy > 0 && touch.atTop) touch.axis = 'dismiss';
+        else touch.axis = 'scroll';           // hand it back to the browser
+        if (touch.axis !== 'scroll') modalPanel.classList.add('swiping');
+    }
+    if (touch.axis === 'scroll') return;
+
+    e.preventDefault();
+
+    if (touch.axis === 'page') {
+        // dx > 0 (dragging right) reveals what lies to the left: the next row.
+        const target = touch.dx > 0 ? articleIndex + 1 : articleIndex - 1;
+        const travel = articleList[target] ? touch.dx : resist(touch.dx);
+        modalPanel.style.transform = `translateX(${travel}px)`;
+    } else {
+        const travel = Math.max(0, touch.dy);
+        modalPanel.style.transform = `translateY(${travel}px)`;
+        modalBackdrop.style.opacity = String(Math.max(0, 1 - travel / (window.innerHeight * 0.6)));
+    }
+}, { passive: false });
+
+modalPanel.addEventListener('touchend', () => {
+    if (!touch || !touch.axis || touch.axis === 'scroll') {
+        touch = null;
+        modalPanel.classList.remove('swiping');
+        return;
+    }
+
+    const elapsed = Math.max(1, Date.now() - touch.startedAt);
+    const current = touch;
+    touch = null;
+
+    if (current.axis === 'page') {
+        const target = current.dx > 0 ? articleIndex + 1 : articleIndex - 1;
+        const velocity = Math.abs(current.dx) / elapsed;
+        const commit = articleList[target] &&
+            (Math.abs(current.dx) > PAGE_DISTANCE || velocity > FLICK_VELOCITY);
+
+        if (!commit) {
+            settlePanel('', '', resetPanelTransform);
+            return;
+        }
+        // Out the way it was dragged, swap the content, then in from the far side.
+        const out = current.dx > 0 ? '100%' : '-100%';
+        const from = current.dx > 0 ? '-100%' : '100%';
+        settlePanel(`translateX(${out})`, '0', () => {
+            modalPanel.classList.add('swiping');
+            modalPanel.style.transform = `translateX(${from})`;
+            showArticle(target);
+            requestAnimationFrame(() => settlePanel('', '1', resetPanelTransform));
+        });
+        return;
+    }
+
+    const velocity = current.dy / elapsed;
+    if (current.dy > DISMISS_DISTANCE || velocity > FLICK_VELOCITY) {
+        modalBackdrop.style.opacity = '0';
+        settlePanel('translateY(100%)', '1', () => closeArticle(false));
+    } else {
+        modalBackdrop.style.opacity = '';
+        settlePanel('', '', resetPanelTransform);
+    }
+}, { passive: true });
+
+modalPanel.addEventListener('touchcancel', () => {
+    touch = null;
+    resetPanelTransform();
+}, { passive: true });
 
 readerModeBtn.addEventListener('click', () => {
     const active = modalPanel.classList.toggle('reader-mode');
@@ -1247,12 +1518,10 @@ readerModeBtn.addEventListener('click', () => {
     updateReaderProgress();
 });
 
-modalClose.addEventListener('click', () => modal.classList.add('hidden'));
-modal.querySelector('.modal-backdrop').addEventListener('click', () => modal.classList.add('hidden'));
+modalClose.addEventListener('click', () => closeArticle(false));
+modal.querySelector('.modal-backdrop').addEventListener('click', () => closeArticle(false));
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-        modal.classList.add('hidden');
-    }
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeArticle(false);
 });
 
 const todayDateEl = document.getElementById('todayDate');
