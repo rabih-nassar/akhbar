@@ -14,6 +14,7 @@ const ALLOWED_HOSTS = new Set([
     'tayyar.org', 'www.tayyar.org',
     'elnashra.com', 'www.elnashra.com',
     'lebanondebate.com', 'www.lebanondebate.com',
+    'lebanonfiles.com', 'www.lebanonfiles.com',
 ]);
 
 const CORS_HEADERS = {

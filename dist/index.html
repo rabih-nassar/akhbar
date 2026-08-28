@@ -166,9 +166,12 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
 }
 
 @media (max-width: 700px) {
-    /* Three tabs have to share a phone-width column, so shrink the labels
-       rather than let them wrap onto a second line. */
-    .tab-btn { font-size: 12px; padding: 9px 3px; }
+    /* Too many tabs to share a phone-width column, so let the strip scroll
+       sideways instead of squeezing or wrapping the labels. The column needs
+       min-width:0 or it grows to fit the strip and the whole page overflows. */
+    .col { min-width: 0; }
+    .tabs { overflow-x: auto; scrollbar-width: none; min-width: 0; }
+    .tab-btn { flex: 0 0 auto; font-size: 12px; padding: 9px 10px; }
     .site-header .masthead-inner { position: static; }
     .masthead-meta {
         position: static;
@@ -263,6 +266,8 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
     margin-bottom: 16px;
     border-bottom: 1px solid var(--rule);
 }
+/* Hide the scrollbar the narrow-screen rule below introduces. */
+.tabs::-webkit-scrollbar { display: none; }
 .tab-btn {
     flex: 1;
     padding: 9px 6px;
@@ -499,10 +504,12 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
                     <button class="tab-btn active" data-tab="tayyar">Tayyar</button>
                     <button class="tab-btn" data-tab="elnashra">Elnashra</button>
                     <button class="tab-btn" data-tab="ldebate">Lebanon Debate</button>
+                    <button class="tab-btn" data-tab="lfiles">Lebanon Files</button>
                 </div>
                 <div id="live-tayyar" class="live-list tab-panel active"></div>
                 <div id="live-elnashra" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-ldebate" class="live-list tab-panel"><div class="loading">Loading…</div></div>
+                <div id="live-lfiles" class="live-list tab-panel"><div class="loading">Loading…</div></div>
             </section>
 
             <section class="col exclusive-col">
@@ -913,6 +920,70 @@ async function scrapeLebanonDebateArticle(url) {
     return { title, image, date, tags, body, url };
 }
 
+// Lebanon Files' "أخبار الساعة" (news of the hour) sidebar feed.
+const LEBANONFILES_BASE_URL = 'https://www.lebanonfiles.com';
+
+async function scrapeLebanonFilesLive() {
+    const doc = parseHtml(await fetchHtml(LEBANONFILES_BASE_URL + '/'));
+
+    // The homepage renders the list twice: a short mobile copy and the full
+    // desktop one. Take the desktop list, which carries every item.
+    const list = doc.querySelector('#hourlyNewsListParentDescktop')
+        || doc.querySelector('.latest-hourly-posts .hourlyNewsListParent');
+    if (!list) return [];
+
+    const items = [];
+    const seen = new Set();
+    list.querySelectorAll('li.article-list').forEach(el => {
+        const link = el.querySelector('h3 a');
+        const href = absUrl(link && link.getAttribute('href'), LEBANONFILES_BASE_URL);
+        const title = text(link);
+        if (!href || !title || seen.has(href)) return;
+        seen.add(href);
+        // Timestamps read "10:33 :" and carry no date, but the list already
+        // arrives newest-first, so keep the source order instead of guessing
+        // a date to sort by.
+        items.push({
+            id: href,
+            title,
+            url: href,
+            time: text(el.querySelector('.top-head time')).replace(/\s*:\s*$/, ''),
+        });
+    });
+
+    return items;
+}
+
+async function scrapeLebanonFilesArticle(url) {
+    const doc = parseHtml(await fetchHtml(url));
+
+    // The site logo is an <h1> too, so scope the title to the article header.
+    const header = doc.querySelector('.articleHeader');
+    const ogTitle = doc.querySelector('meta[property="og:title"]');
+    const title = text(header && header.querySelector('h1'))
+        || (ogTitle ? ogTitle.getAttribute('content') : '');
+
+    const date = text(header && header.querySelector('h3'));
+
+    const catEl = header && header.querySelector('.categoryAndAuthor a');
+    const tags = catEl ? [text(catEl)] : [];
+
+    const bodyEl = doc.querySelector('.contentHolder .content');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style, ins, iframe, .advertisement, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        body = blockText(clone);
+    }
+
+    // Hourly flashes carry no body and all share one placeholder share image,
+    // so only show the image on articles that actually have text.
+    const metaImg = doc.querySelector('meta[property="og:image"]');
+    const image = body && metaImg ? metaImg.getAttribute('content') : null;
+
+    return { title, image, date, tags, body, url };
+}
+
 const loadingEl = document.getElementById('loading');
 const contentEl = document.getElementById('content');
 const modal = document.getElementById('modal');
@@ -1009,6 +1080,7 @@ setReaderScale(readerScale);
 const ARTICLE_SOURCES = {
     elnashra: { scrape: scrapeElnashraArticle, site: 'elnashra.com' },
     ldebate: { scrape: scrapeLebanonDebateArticle, site: 'lebanondebate.com' },
+    lfiles: { scrape: scrapeLebanonFilesArticle, site: 'lebanonfiles.com' },
 };
 
 async function openArticle(url, source) {
@@ -1098,6 +1170,7 @@ async function loadHome() {
     await Promise.all([
         loadLivePanel('live-elnashra', scrapeElnashraLive, 'elnashra'),
         loadLivePanel('live-ldebate', scrapeLebanonDebateLive, 'ldebate'),
+        loadLivePanel('live-lfiles', scrapeLebanonFilesLive, 'lfiles'),
     ]);
 }
 
