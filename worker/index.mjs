@@ -15,6 +15,8 @@ const ALLOWED_HOSTS = new Set([
     'elnashra.com', 'www.elnashra.com',
     'lebanondebate.com', 'www.lebanondebate.com',
     'lebanonfiles.com', 'www.lebanonfiles.com',
+    'mtv.com.lb', 'www.mtv.com.lb',
+    'lbcgroup.tv', 'www.lbcgroup.tv',
 ]);
 
 const CORS_HEADERS = {

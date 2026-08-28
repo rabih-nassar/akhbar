@@ -500,16 +500,22 @@ main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
             </section>
 
             <section class="col live-col">
+                <!-- The page is RTL, so the first button renders rightmost:
+                     this order reads alphabetically from right to left. -->
                 <div class="tabs">
-                    <button class="tab-btn active" data-tab="tayyar">Tayyar</button>
                     <button class="tab-btn" data-tab="elnashra">Elnashra</button>
+                    <button class="tab-btn" data-tab="lbc">LBC</button>
                     <button class="tab-btn" data-tab="ldebate">Lebanon Debate</button>
                     <button class="tab-btn" data-tab="lfiles">Lebanon Files</button>
+                    <button class="tab-btn" data-tab="mtv">MTV</button>
+                    <button class="tab-btn active" data-tab="tayyar">Tayyar</button>
                 </div>
-                <div id="live-tayyar" class="live-list tab-panel active"></div>
                 <div id="live-elnashra" class="live-list tab-panel"><div class="loading">Loading…</div></div>
+                <div id="live-lbc" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-ldebate" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-lfiles" class="live-list tab-panel"><div class="loading">Loading…</div></div>
+                <div id="live-mtv" class="live-list tab-panel"><div class="loading">Loading…</div></div>
+                <div id="live-tayyar" class="live-list tab-panel active"></div>
             </section>
 
             <section class="col exclusive-col">
@@ -984,6 +990,128 @@ async function scrapeLebanonFilesArticle(url) {
     return { title, image, date, tags, body, url };
 }
 
+// MTV's "كل الأخبار" (all news) feed.
+const MTV_BASE_URL = 'https://www.mtv.com.lb';
+
+async function scrapeMtvLive() {
+    const doc = parseHtml(await fetchHtml(MTV_BASE_URL + '/'));
+
+    // The homepage renders the feed twice: the ticker at the top carries every
+    // item, the list under the "كل الأخبار" category tabs only a subset (and
+    // the ticker repeats one slide), so read both and dedupe by URL.
+    const items = [];
+    const seen = new Set();
+    doc.querySelectorAll('.homepage-news-swiper a.news-item, .mobile-all-news-section .news-list a.news-item').forEach(el => {
+        const href = absUrl(el.getAttribute('href'), MTV_BASE_URL);
+        const titleEl = el.querySelector('.news-title');
+        if (!href || !titleEl || seen.has(href)) return;
+
+        // The ticker nests the timestamp inside the title, so drop it first.
+        const clone = titleEl.cloneNode(true);
+        clone.querySelectorAll('.news-time').forEach(n => n.remove());
+        const title = text(clone);
+        if (!title) return;
+
+        seen.add(href);
+        items.push({ id: href, title, url: href, time: text(el.querySelector('.news-time')) });
+    });
+
+    return items;
+}
+
+async function scrapeMtvArticle(url) {
+    const doc = parseHtml(await fetchHtml(url));
+
+    const titleEl = doc.querySelector('.articles-header-title');
+    let title = '';
+    if (titleEl) {
+        // The date block sits inside the title block.
+        const clone = titleEl.cloneNode(true);
+        clone.querySelectorAll('.articles-header-date').forEach(n => n.remove());
+        title = text(clone);
+    }
+    if (!title) {
+        const ogTitle = doc.querySelector('meta[property="og:title"]');
+        title = ogTitle ? ogTitle.getAttribute('content') : '';
+    }
+
+    // Date and time are adjacent spans with no whitespace between them, so
+    // join the parts rather than letting them run together ("28 Aug 202612:24").
+    const dateEl = doc.querySelector('.articles-header-date');
+    const date = dateEl
+        ? (Array.from(dateEl.children).map(text).filter(Boolean).join(' — ') || text(dateEl))
+        : '';
+
+    // MTV carries the section in the URL rather than on the page
+    // (/News/<section>/<id>/<slug>). Short /news/<id> permalinks have a numeric
+    // segment there instead, which isn't a tag.
+    const section = decodeURIComponent(url).split('/')[4] || '';
+    const tags = section && !/^\d+$/.test(section) ? [section] : [];
+
+    const metaImg = doc.querySelector('meta[property="og:image"]');
+    const image = metaImg ? metaImg.getAttribute('content') : null;
+
+    const bodyEl = doc.querySelector('.articles-main-content');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style, iframe, ins, .article-ad, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        body = blockText(clone);
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
+// LBCI's "آخر الأخبار" latest-news page. lbcgroup.tv sends
+// Access-Control-Allow-Origin, so these reads never need the proxy.
+const LBC_BASE_URL = 'https://www.lbcgroup.tv';
+const LBC_LIVE_URL = LBC_BASE_URL + '/latest-news/ar';
+
+async function scrapeLbcLive() {
+    const doc = parseHtml(await fetchHtml(LBC_LIVE_URL));
+
+    const items = [];
+    const seen = new Set();
+    // The page reuses the same card markup for the breaking-news banner and the
+    // "most read" block; .card__item-nopic scopes this to the latest-news list.
+    doc.querySelectorAll('.card__item-nopic .card-module-horizontal').forEach(el => {
+        const link = el.querySelector('a.u-imgLink');
+        const href = absUrl(link && link.getAttribute('href'), LBC_BASE_URL);
+        const title = (link && link.getAttribute('title')) || text(el.querySelector('.card-module-title'));
+        if (!href || !title || seen.has(href)) return;
+        seen.add(href);
+        items.push({ id: href, title, url: href, time: text(el.querySelector('.card-module-date-container')) });
+    });
+
+    return items;
+}
+
+async function scrapeLbcArticle(url) {
+    const doc = parseHtml(await fetchHtml(url));
+
+    const title = text(doc.querySelector('.article_details_title')) || text(doc.querySelector('h1'));
+    const date = text(doc.querySelector('.article_details_date'));
+
+    const catEl = doc.querySelector('.article_details_category');
+    const tags = catEl ? [text(catEl)] : [];
+
+    const metaImg = doc.querySelector('meta[property="og:image"]');
+    const image = metaImg ? metaImg.getAttribute('content') : null;
+
+    // articleBody also wraps the read-time badge and a repeat of the headline;
+    // .LongDesc is the article text itself.
+    const bodyEl = doc.querySelector('[itemprop="articleBody"] .LongDesc')
+        || doc.querySelector('[itemprop="articleBody"]');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style, iframe, ins, .advertisement, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        body = blockText(clone);
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
 const loadingEl = document.getElementById('loading');
 const contentEl = document.getElementById('content');
 const modal = document.getElementById('modal');
@@ -1081,6 +1209,8 @@ const ARTICLE_SOURCES = {
     elnashra: { scrape: scrapeElnashraArticle, site: 'elnashra.com' },
     ldebate: { scrape: scrapeLebanonDebateArticle, site: 'lebanondebate.com' },
     lfiles: { scrape: scrapeLebanonFilesArticle, site: 'lebanonfiles.com' },
+    mtv: { scrape: scrapeMtvArticle, site: 'mtv.com.lb' },
+    lbc: { scrape: scrapeLbcArticle, site: 'lbcgroup.tv' },
 };
 
 async function openArticle(url, source) {
@@ -1171,6 +1301,8 @@ async function loadHome() {
         loadLivePanel('live-elnashra', scrapeElnashraLive, 'elnashra'),
         loadLivePanel('live-ldebate', scrapeLebanonDebateLive, 'ldebate'),
         loadLivePanel('live-lfiles', scrapeLebanonFilesLive, 'lfiles'),
+        loadLivePanel('live-mtv', scrapeMtvLive, 'mtv'),
+        loadLivePanel('live-lbc', scrapeLbcLive, 'lbc'),
     ]);
 }
 
