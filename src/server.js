@@ -34,5 +34,5 @@ app.get('/api/article', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`NewsAg server running at http://localhost:${PORT}`);
+    console.log(`Akhbar.FYI server running at http://localhost:${PORT}`);
 });

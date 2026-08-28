@@ -2,7 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 const BASE_URL = 'https://www.tayyar.org';
-const HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; NewsAgScraper/1.0)' };
+const HEADERS = { 'User-Agent': 'Mozilla/5.0 (compatible; AkhbarFYI/1.0)' };
 
 async function fetchHtml(url) {
     const { data } = await axios.get(url, { headers: HEADERS, timeout: 15000 });
