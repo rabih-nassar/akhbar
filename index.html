@@ -549,6 +549,7 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
                     <button class="tab-btn active" data-tab="all">All</button>
                     <button class="tab-btn" data-tab="elnashra">Elnashra</button>
                     <button class="tab-btn" data-tab="lbc">LBC</button>
+                    <button class="tab-btn" data-tab="l24">Lebanon 24</button>
                     <button class="tab-btn" data-tab="ldebate">Lebanon Debate</button>
                     <button class="tab-btn" data-tab="lfiles">Lebanon Files</button>
                     <button class="tab-btn" data-tab="mtv">MTV</button>
@@ -559,6 +560,7 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
                 <div id="live-all" class="live-list tab-panel active"><div class="loading">Loading…</div></div>
                 <div id="live-elnashra" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-lbc" class="live-list tab-panel"><div class="loading">Loading…</div></div>
+                <div id="live-l24" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-ldebate" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-lfiles" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-mtv" class="live-list tab-panel"><div class="loading">Loading…</div></div>
@@ -593,11 +595,15 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
 <script>
 const BASE_URL = 'https://www.tayyar.org';
 const ELNASHRA_BASE_URL = 'https://www.elnashra.com';
-// Only these two send Access-Control-Allow-Origin, so only they can be read
+// Only these sites send Access-Control-Allow-Origin, so only they can be read
 // straight from the browser. Trying a direct fetch anywhere else is guaranteed
 // to fail: it wastes a round-trip and logs a CORS error the page can't catch,
 // so those reads go to a proxy immediately.
-const CORS_ENABLED_HOSTS = ['tayyar.org', 'www.tayyar.org', 'lbcgroup.tv', 'www.lbcgroup.tv'];
+const CORS_ENABLED_HOSTS = [
+    'tayyar.org', 'www.tayyar.org',
+    'lbcgroup.tv', 'www.lbcgroup.tv',
+    'lebanon24.com', 'www.lebanon24.com',
+];
 
 // Proxies, in order:
 //   1. /proxy on this origin — our own Worker (see worker/index.mjs). No rate
@@ -1143,6 +1149,81 @@ async function scrapeLbcArticle(url) {
     return { title, image, date, tags, body, url };
 }
 
+// Lebanon 24's latest-news page. lebanon24.com sends
+// Access-Control-Allow-Origin, so these reads never need the proxy.
+const LEBANON24_BASE_URL = 'https://www.lebanon24.com';
+const LEBANON24_LIVE_URL = LEBANON24_BASE_URL + '/live-news';
+
+async function scrapeLebanon24Live() {
+    const doc = parseHtml(await fetchHtml(LEBANON24_LIVE_URL));
+
+    const items = [];
+    const seen = new Set();
+    doc.querySelectorAll('.LatestNewsPageItemDiv .LatestNewsCustomPd').forEach(el => {
+        const link = el.querySelector('.LatestNewsPageTitle a');
+        const href = absUrl(link && link.getAttribute('href'), LEBANON24_BASE_URL);
+        const title = text(link);
+        if (!href || !title || seen.has(href)) return;
+        seen.add(href);
+
+        // Each row shows a bare HH:MM but hides the full stamp next to it, so
+        // take the day from there rather than leaving fillSortDates to infer it
+        // from the clock running backwards. Drop the hidden span before reading
+        // the visible time or the two run together.
+        const timeEl = el.querySelector('.LatestNewsPagePublishingDate');
+        let time = '';
+        let sortDate = 0;
+        if (timeEl) {
+            const stamp = /(\d{1,2}):(\d{2})\s*\|\s*(\d{4})-(\d{2})-(\d{2})/
+                .exec(text(timeEl.querySelector('.u-hide')));
+            if (stamp) {
+                sortDate = new Date(+stamp[3], +stamp[4] - 1, +stamp[5], +stamp[1], +stamp[2]).getTime();
+            }
+            const clone = timeEl.cloneNode(true);
+            clone.querySelectorAll('.u-hide').forEach(n => n.remove());
+            time = text(clone);
+        }
+
+        items.push({ id: href, title, url: href, time, sortDate });
+    });
+
+    return items;
+}
+
+async function scrapeLebanon24Article(url) {
+    const doc = parseHtml(await fetchHtml(url));
+
+    let title = text(doc.querySelector('[itemprop="headline"]'));
+    if (!title) {
+        const ogTitle = doc.querySelector('meta[property="og:title"]');
+        title = ogTitle ? ogTitle.getAttribute('content') : '';
+    }
+
+    // Date and time are separate spans, but the one between them already
+    // carries the separator, so the flattened text reads correctly as-is.
+    const date = text(doc.querySelector('.Article_Details_PublishingDate'));
+
+    const section = text(doc.querySelector('[itemprop="articleSection"]'));
+    const tags = section ? [section] : [];
+
+    const metaImg = doc.querySelector('meta[property="og:image"]');
+    const image = metaImg ? metaImg.getAttribute('content') : null;
+
+    const bodyEl = doc.querySelector('[itemprop="articleBody"]');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        // .BannersControl_FullMainDiv is an ad slot dropped inside the text.
+        // Its "Advertisement" label is plain text, so stripping only scripts
+        // and styles leaves that word behind as the whole body on the
+        // headline-only flashes.
+        clone.querySelectorAll('script, style, iframe, ins, input, .BannersControl_FullMainDiv, [class*="AddBannerHere"], [id^="div-gpt-ad"]').forEach(n => n.remove());
+        body = blockText(clone);
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
 const loadingEl = document.getElementById('loading');
 const contentEl = document.getElementById('content');
 const modal = document.getElementById('modal');
@@ -1245,6 +1326,7 @@ const ARTICLE_SOURCES = {
     lfiles: { scrape: scrapeLebanonFilesArticle, site: 'lebanonfiles.com' },
     mtv: { scrape: scrapeMtvArticle, site: 'mtv.com.lb' },
     lbc: { scrape: scrapeLbcArticle, site: 'lbcgroup.tv' },
+    l24: { scrape: scrapeLebanon24Article, site: 'lebanon24.com' },
 };
 
 // Articles are fetched on demand, so paging into one that isn't loaded yet
@@ -1668,6 +1750,7 @@ const LIVE_SOURCES = [
     { key: 'lfiles', label: 'Lebanon Files', scrape: scrapeLebanonFilesLive },
     { key: 'mtv', label: 'MTV', scrape: scrapeMtvLive },
     { key: 'lbc', label: 'LBCI', scrape: scrapeLbcLive },
+    { key: 'l24', label: 'Lebanon 24', scrape: scrapeLebanon24Live },
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
