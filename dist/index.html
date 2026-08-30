@@ -291,6 +291,18 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
     }
     .modal-backdrop { transition: opacity .2s var(--ease); }
     .modal-panel.swiping ~ .modal-backdrop { transition: none; }
+
+    /* The article being paged to. It rides one card-width away from the open
+       one and travels with it, so the old card leaves as the new one arrives.
+       Its box is measured off the open card in JS rather than declared here,
+       so the two are pixel-identical whatever the panel's inset happens to
+       be — otherwise the arriving card visibly resizes as it lands. */
+    .modal-panel.ghost {
+        position: absolute;
+        overflow: hidden;
+        pointer-events: none;
+        animation: none;
+    }
 }
 
 .tab-panel.active { display: flex; }
@@ -394,7 +406,7 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
 .modal-panel {
     position: relative;
     background: var(--panel);
-    border-radius: 6px;
+    border-radius: 30px;
     width: 100%;
     height: 100%;
     max-width: none;
@@ -1302,6 +1314,25 @@ function openArticle(list, index) {
     return showArticle(index);
 }
 
+// Shared by the open card and by the card sliding in behind a swipe.
+function renderArticleHtml(data, item) {
+    // News flashes are headline-only, so say so rather than showing a blank body.
+    const paragraphs = (data.body || '').split(/\n+/).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`).join('')
+        || '<p>لا يتضمّن هذا الخبر نصّاً إضافيّاً.</p>';
+    return `
+        <h2 class="article-title">${escapeHtml(data.title)}</h2>
+        <div class="article-meta">
+            ${(data.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+            ${data.date ? escapeHtml(data.date) : ''}
+        </div>
+        ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
+        <div class="article-body">${paragraphs}</div>
+        <div class="reader-source"><a href="${item.url}" target="_blank" rel="noopener">View original on ${data.siteName} ←</a></div>
+    `;
+}
+
+const LOADING_HTML = '<div class="loading">Loading article…</div>';
+
 async function showArticle(index) {
     const item = articleList[index];
     if (!item) return;
@@ -1310,26 +1341,14 @@ async function showArticle(index) {
     modalPanel.scrollTop = 0;
     readerProgress.style.setProperty('--progress', '0%');
     if (!articleCache.has(item.url)) {
-        modalBody.innerHTML = '<div class="loading">Loading article…</div>';
+        modalBody.innerHTML = LOADING_HTML;
     }
 
     try {
         const data = await fetchArticle(item.url, item.source);
         if (articleIndex !== index) return; // swiped on while this was loading
 
-        // News flashes are headline-only, so say so rather than showing a blank body.
-        const paragraphs = (data.body || '').split(/\n+/).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`).join('')
-            || '<p>لا يتضمّن هذا الخبر نصّاً إضافيّاً.</p>';
-        modalBody.innerHTML = `
-            <h2 class="article-title">${escapeHtml(data.title)}</h2>
-            <div class="article-meta">
-                ${(data.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
-                ${data.date ? escapeHtml(data.date) : ''}
-            </div>
-            ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
-            <div class="article-body">${paragraphs}</div>
-            <div class="reader-source"><a href="${item.url}" target="_blank" rel="noopener">View original on ${data.siteName} ←</a></div>
-        `;
+        modalBody.innerHTML = renderArticleHtml(data, item);
         updateReaderProgress();
         prefetchNeighbours(index);
     } catch (err) {
@@ -1386,30 +1405,113 @@ function onPhone() {
 }
 
 function resetPanelTransform() {
+    removeIncoming();
     modalPanel.classList.remove('swiping', 'settling');
     modalPanel.style.transform = '';
     modalPanel.style.opacity = '';
     modalBackdrop.style.opacity = '';
 }
 
-// Transition to a transform and run `after` once it lands. transitionend can
-// be skipped when nothing actually changes, so a timer backs it up.
-function settlePanel(transform, opacity, after) {
-    modalPanel.classList.remove('swiping');
-    modalPanel.classList.add('settling');
-    modalPanel.style.transform = transform;
-    modalPanel.style.opacity = opacity;
+// Transition an element to a transform and run `after` once it lands.
+// transitionend can be skipped when nothing actually changes, so a timer
+// backs it up.
+function settle(el, transform, opacity, after) {
+    el.classList.remove('swiping');
+    el.classList.add('settling');
+    el.style.transform = transform;
+    el.style.opacity = opacity;
 
     let finished = false;
     const done = () => {
         if (finished) return;
         finished = true;
-        modalPanel.removeEventListener('transitionend', done);
-        modalPanel.classList.remove('settling');
+        el.removeEventListener('transitionend', done);
+        el.classList.remove('settling');
         if (after) after();
     };
-    modalPanel.addEventListener('transitionend', done);
+    el.addEventListener('transitionend', done);
     setTimeout(done, SETTLE_MS + 60);
+}
+
+function settlePanel(transform, opacity, after) {
+    settle(modalPanel, transform, opacity, after);
+}
+
+/* ---------- The card being paged to ----------
+ * A second, inert copy of the panel parked one card-stride away on the side
+ * the gesture is pulling from, boxed to match the open card exactly. It
+ * carries the same translation, so the two move as one strip: the old one
+ * leaves while the new one arrives.
+ */
+let incoming = null;        // { el, dir, index, stride }
+
+function removeIncoming() {
+    if (!incoming) return;
+    incoming.el.remove();
+    incoming = null;
+}
+
+// How far a card travels to take its neighbour's place: its own width plus
+// the gutter on either side of it. Read from layout rather than assumed, and
+// from offset* rather than a rect so an in-flight transform doesn't skew it.
+function cardStride() {
+    return modalPanel.offsetWidth + modalPanel.offsetLeft * 2;
+}
+
+// dir: +1 pages forward (the card to the left, in this RTL layout), -1 back.
+function buildIncoming(dir) {
+    const index = articleIndex + dir;
+    const item = articleList[index];
+    if (!item) return null;
+
+    const el = document.createElement('div');
+    el.className = modalPanel.className.replace(/\b(swiping|settling)\b/g, '').trim() + ' ghost';
+    el.style.setProperty('--reader-scale', readerScale);
+    // Same box as the open card, down to the pixel, so landing is not a resize.
+    el.style.left = modalPanel.offsetLeft + 'px';
+    el.style.top = modalPanel.offsetTop + 'px';
+    el.style.width = modalPanel.offsetWidth + 'px';
+    el.style.height = modalPanel.offsetHeight + 'px';
+
+    const actions = modalPanel.querySelector('.modal-actions').cloneNode(true);
+    actions.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+    actions.setAttribute('aria-hidden', 'true');
+    el.appendChild(actions);
+
+    const body = document.createElement('div');
+    body.className = 'modal-body reader';
+    body.innerHTML = LOADING_HTML;
+    el.appendChild(body);
+
+    modal.appendChild(el);
+    incoming = { el, dir, index, stride: cardStride() };
+
+    const cached = articleCache.get(item.url);
+    if (cached) {
+        body.innerHTML = renderArticleHtml(cached, item);
+    } else {
+        // Warm it so the card is not still a spinner once it lands.
+        const mine = incoming;
+        fetchArticle(item.url, item.source)
+            .then(data => { if (incoming === mine) body.innerHTML = renderArticleHtml(data, item); })
+            .catch(() => { /* showArticle reports it after the swap */ });
+    }
+    return incoming;
+}
+
+// Where the parked card waits: one stride away, opposite the drag.
+function incomingBase(card) {
+    return `translateX(${-card.dir * card.stride}px)`;
+}
+
+// Keep the parked card in step with the finger, rebuilding it if the drag
+// changes its mind about which way it is going.
+function trackIncoming(dir, travel) {
+    if (incoming && incoming.dir !== dir) removeIncoming();
+    if (!incoming) buildIncoming(dir);
+    if (!incoming) return;
+    incoming.el.classList.add('swiping');
+    incoming.el.style.transform = `translateX(${-dir * incoming.stride + travel}px)`;
 }
 
 // Nothing to page to at this end of the list, so the drag drags heavily.
@@ -1418,7 +1520,10 @@ function resist(distance) {
 }
 
 modalPanel.addEventListener('touchstart', (e) => {
-    if (!onPhone() || e.touches.length !== 1 || modal.classList.contains('hidden')) {
+    // Ignore a new gesture while the last one is still flying home, or it
+    // would drag a card that is mid-swap.
+    if (!onPhone() || e.touches.length !== 1 || modal.classList.contains('hidden')
+        || modalPanel.classList.contains('settling')) {
         touch = null;
         return;
     }
@@ -1453,9 +1558,10 @@ modalPanel.addEventListener('touchmove', (e) => {
 
     if (touch.axis === 'page') {
         // dx > 0 (dragging right) reveals what lies to the left: the next row.
-        const target = touch.dx > 0 ? articleIndex + 1 : articleIndex - 1;
-        const travel = articleList[target] ? touch.dx : resist(touch.dx);
+        const dir = touch.dx > 0 ? 1 : -1;
+        const travel = articleList[articleIndex + dir] ? touch.dx : resist(touch.dx);
         modalPanel.style.transform = `translateX(${travel}px)`;
+        trackIncoming(dir, travel);
     } else {
         const travel = Math.max(0, touch.dy);
         modalPanel.style.transform = `translateY(${travel}px)`;
@@ -1475,24 +1581,34 @@ modalPanel.addEventListener('touchend', () => {
     touch = null;
 
     if (current.axis === 'page') {
-        const target = current.dx > 0 ? articleIndex + 1 : articleIndex - 1;
+        const dir = current.dx > 0 ? 1 : -1;
+        const target = articleIndex + dir;
         const velocity = Math.abs(current.dx) / elapsed;
         const commit = articleList[target] &&
             (Math.abs(current.dx) > PAGE_DISTANCE || velocity > FLICK_VELOCITY);
 
         if (!commit) {
+            if (incoming) settle(incoming.el, incomingBase(incoming), '', null);
             settlePanel('', '', resetPanelTransform);
             return;
         }
-        // Out the way it was dragged, swap the content, then in from the far side.
-        const out = current.dx > 0 ? '100%' : '-100%';
-        const from = current.dx > 0 ? '-100%' : '100%';
-        settlePanel(`translateX(${out})`, '0', () => {
-            modalPanel.classList.add('swiping');
-            modalPanel.style.transform = `translateX(${from})`;
+        // Both cards finish the same journey together: the open one leaves the
+        // way it was dragged as the parked one slides into its place.
+        if (!incoming || incoming.dir !== dir) {
+            removeIncoming();
+            buildIncoming(dir);
+        }
+        const arriving = incoming;
+        const stride = arriving ? arriving.stride : cardStride();
+        settlePanel(`translateX(${dir * stride}px)`, '', () => {
+            // Hand the arrived content to the real panel behind the copy, then
+            // drop the copy once the swap has painted.
             showArticle(target);
-            requestAnimationFrame(() => settlePanel('', '1', resetPanelTransform));
+            requestAnimationFrame(() => {
+                if (incoming === arriving) resetPanelTransform();
+            });
         });
+        if (arriving) settle(arriving.el, 'translateX(0)', '', null);
         return;
     }
 
