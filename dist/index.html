@@ -485,8 +485,15 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
 }
 .article-image { width: 100%; max-width: min(800px, 33vw); height: auto; border-radius: 6px; margin: 0 auto 26px; display: block; transition: opacity .25s var(--ease), max-height .3s var(--ease), margin .3s var(--ease); }
 .reader img { max-width: min(800px, 33vw); height: auto; display: block; margin-left: auto; margin-right: auto; }
-.article-body { line-height: 1.75; font-size: 17px; white-space: pre-wrap; transition: font-size .25s var(--ease), line-height .25s var(--ease), font-family .25s var(--ease), letter-spacing .25s var(--ease); }
-.article-body p { margin: 0 0 1.1em; }
+.article-body { line-height: 1.75; font-size: 17px; transition: font-size .25s var(--ease), line-height .25s var(--ease), font-family .25s var(--ease), letter-spacing .25s var(--ease); }
+.article-body p { margin: 0 0 1.1em; white-space: pre-wrap; }
+.article-inline-image {
+    display: block;
+    max-width: min(720px, 100%);
+    height: auto;
+    margin: 1.2em auto;
+    border-radius: 6px;
+}
 .embed-wrap {
     position: relative;
     width: 100%;
@@ -688,32 +695,11 @@ const BLOCK_TAGS = new Set([
     'FIGURE', 'FIGCAPTION', 'TABLE', 'TR', 'PRE', 'HR', 'PICTURE', 'IFRAME'
 ]);
 
-function blockText(root) {
-    let out = '';
-    const breakLine = () => { if (out && !out.endsWith('\n')) out += '\n'; };
-    const walk = (node) => {
-        node.childNodes.forEach(child => {
-            if (child.nodeType === Node.TEXT_NODE) {
-                out += child.nodeValue.replace(/\s+/g, ' ');
-            } else if (child.nodeType === Node.ELEMENT_NODE) {
-                const tag = child.tagName;
-                if (tag === 'BR') { out += '\n'; return; }
-                const isBlock = BLOCK_TAGS.has(tag);
-                if (isBlock) breakLine();
-                walk(child);
-                if (isBlock) breakLine();
-            }
-        });
-    };
-    walk(root);
-    return out.split('\n').map(line => line.trim()).filter(Boolean).join('\n');
-}
-
 // Whitelisted iframe hosts. Anything outside this set is dropped rather than
 // injected as HTML — an unfamiliar iframe is likelier to be an ad than a video.
 const EMBED_HOST_RE = /^(?:https?:)?\/\/(?:[\w-]+\.)*(youtube\.com|youtube-nocookie\.com|youtu\.be|player\.vimeo\.com|vimeo\.com|dailymotion\.com|facebook\.com|fb\.watch|platform\.twitter\.com|twitter\.com|x\.com|soundcloud\.com|instagram\.com|tiktok\.com)(?:\/|$)/i;
 
-function normaliseEmbedSrc(src) {
+function normaliseMediaSrc(src) {
     if (!src) return '';
     // Some CMSes set the iframe to a youtu.be short link; rewrite to embed form.
     const short = src.match(/^(?:https?:)?\/\/(?:www\.)?youtu\.be\/([\w-]{6,})/i);
@@ -723,35 +709,83 @@ function normaliseEmbedSrc(src) {
     return src;
 }
 
-// Video and video-adjacent embeds hidden inside the article body. Pulled BEFORE
-// the strip pass tears iframes out, so a video-only article still has something
-// to show. Returns HTML strings safe to inject as-is.
-function extractEmbeds(root) {
+// Walks the body once and produces an ordered list of segments — paragraphs of
+// text interleaved with the images and video embeds that were sitting between
+// them. Preserving the order matters: "بالصور" gallery articles are mostly
+// pictures with a caption above each, and collapsing to text alone throws them
+// away. Segments are { type: 'p', text } for prose and { type: 'html', html }
+// for pre-rendered media.
+function blockContent(root, opts) {
     if (!root) return [];
-    const out = [];
-    const seen = new Set();
-    root.querySelectorAll('iframe').forEach(el => {
+    const skipSrc = new Set((opts && opts.skipImageSrc) || []);
+    const seenMedia = new Set();
+    const segments = [];
+    let textBuf = '';
+
+    const flushText = () => {
+        const lines = textBuf.split('\n').map(l => l.trim()).filter(Boolean);
+        for (const line of lines) segments.push({ type: 'p', text: line });
+        textBuf = '';
+    };
+    const breakLine = () => {
+        if (textBuf && !textBuf.endsWith('\n')) textBuf += '\n';
+    };
+    const pushMedia = (html) => {
+        flushText();
+        segments.push({ type: 'html', html });
+    };
+
+    const emitIframe = (el) => {
         const raw = el.getAttribute('src') || el.getAttribute('data-src') || '';
-        const src = normaliseEmbedSrc(raw);
-        if (!src || !EMBED_HOST_RE.test(src) || seen.has(src)) return;
-        seen.add(src);
-        out.push(`<div class="embed-wrap"><iframe src="${escapeHtml(src)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe></div>`);
-    });
-    root.querySelectorAll('video').forEach(el => {
+        const src = normaliseMediaSrc(raw);
+        if (!src || !EMBED_HOST_RE.test(src) || seenMedia.has(src)) return;
+        seenMedia.add(src);
+        pushMedia(`<div class="embed-wrap"><iframe src="${escapeHtml(src)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe></div>`);
+    };
+    const emitVideo = (el) => {
         let raw = el.getAttribute('src') || '';
         if (!raw) {
             const source = el.querySelector('source');
             if (source) raw = source.getAttribute('src') || '';
         }
-        const src = normaliseEmbedSrc(raw);
-        if (!src || seen.has(src)) return;
-        seen.add(src);
+        const src = normaliseMediaSrc(raw);
+        if (!src || seenMedia.has(src)) return;
+        seenMedia.add(src);
         const posterRaw = el.getAttribute('poster') || '';
-        const poster = posterRaw ? normaliseEmbedSrc(posterRaw) : '';
+        const poster = posterRaw ? normaliseMediaSrc(posterRaw) : '';
         const posterAttr = poster ? ` poster="${escapeHtml(poster)}"` : '';
-        out.push(`<div class="embed-wrap"><video controls preload="none"${posterAttr} src="${escapeHtml(src)}"></video></div>`);
-    });
-    return out;
+        pushMedia(`<div class="embed-wrap"><video controls preload="none"${posterAttr} src="${escapeHtml(src)}"></video></div>`);
+    };
+    const emitImg = (el) => {
+        const raw = el.getAttribute('src') || el.getAttribute('data-src') || el.getAttribute('data-original') || '';
+        const src = normaliseMediaSrc(raw);
+        // skipSrc holds the hero image so it doesn't show twice.
+        if (!src || seenMedia.has(src) || skipSrc.has(src)) return;
+        seenMedia.add(src);
+        pushMedia(`<img class="article-inline-image" src="${escapeHtml(src)}" alt="" loading="lazy">`);
+    };
+
+    const walk = (node) => {
+        node.childNodes.forEach(child => {
+            if (child.nodeType === Node.TEXT_NODE) {
+                textBuf += child.nodeValue.replace(/\s+/g, ' ');
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                const tag = child.tagName;
+                if (tag === 'BR') { textBuf += '\n'; return; }
+                if (tag === 'SCRIPT' || tag === 'STYLE') return;
+                if (tag === 'IFRAME') { emitIframe(child); return; }
+                if (tag === 'VIDEO') { emitVideo(child); return; }
+                if (tag === 'IMG') { emitImg(child); return; }
+                const isBlock = BLOCK_TAGS.has(tag);
+                if (isBlock) breakLine();
+                walk(child);
+                if (isBlock) breakLine();
+            }
+        });
+    };
+    walk(root);
+    flushText();
+    return segments;
 }
 
 async function scrapeTayyarLive() {
@@ -800,15 +834,14 @@ async function scrapeArticle(url) {
     doc.querySelectorAll('.Article .taglist .nametag').forEach(el => tags.push(text(el)));
 
     const bodyEl = doc.querySelector('.Article .text');
-    const embeds = extractEmbeds(bodyEl);
-    let body = '';
+    let bodyContent = [];
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
         clone.querySelectorAll('script, style').forEach(n => n.remove());
-        body = blockText(clone);
+        bodyContent = blockContent(clone, { skipImageSrc: image ? [image] : [] });
     }
 
-    return { title, image, date, tags, body, embeds, url };
+    return { title, image, date, tags, bodyContent, url };
 }
 
 async function scrapeElnashraLive() {
@@ -938,15 +971,14 @@ async function scrapeElnashraArticle(url) {
     const image = metaImg ? metaImg.getAttribute('content') : null;
 
     const bodyEl = doc.querySelector('.articleBody');
-    const embeds = extractEmbeds(bodyEl);
-    let body = '';
+    let bodyContent = [];
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
         clone.querySelectorAll('script, style, .ad-container, [id^="div-gpt-ad"], .inread-video').forEach(n => n.remove());
-        body = blockText(clone);
+        bodyContent = blockContent(clone, { skipImageSrc: image ? [image] : [] });
     }
 
-    return { title, image, date, tags, body, embeds, url };
+    return { title, image, date, tags, bodyContent, url };
 }
 
 // Lebanon Debate's "على مدار الساعة" (around the clock) rolling feed. Each page
@@ -1022,15 +1054,14 @@ async function scrapeLebanonDebateArticle(url) {
     if (image && /main-logo|\.svg(\?|$)/i.test(image)) image = null;
 
     const bodyEl = doc.querySelector('.article-texts');
-    const embeds = extractEmbeds(bodyEl);
-    let body = '';
+    let bodyContent = [];
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
-        clone.querySelectorAll('script, style, iframe, .otp-article-poll, .advertisement, [id^="div-gpt-ad"]').forEach(n => n.remove());
-        body = blockText(clone);
+        clone.querySelectorAll('script, style, .otp-article-poll, .advertisement, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        bodyContent = blockContent(clone, { skipImageSrc: image ? [image] : [] });
     }
 
-    return { title, image, date, tags, body, embeds, url };
+    return { title, image, date, tags, bodyContent, url };
 }
 
 // Lebanon Files' "أخبار الساعة" (news of the hour) sidebar feed.
@@ -1082,20 +1113,19 @@ async function scrapeLebanonFilesArticle(url) {
     const tags = catEl ? [text(catEl)] : [];
 
     const bodyEl = doc.querySelector('.contentHolder .content');
-    const embeds = extractEmbeds(bodyEl);
-    let body = '';
+    let bodyContent = [];
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
-        clone.querySelectorAll('script, style, ins, iframe, .advertisement, [id^="div-gpt-ad"]').forEach(n => n.remove());
-        body = blockText(clone);
+        clone.querySelectorAll('script, style, ins, .advertisement, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        bodyContent = blockContent(clone);
     }
 
     // Hourly flashes carry no body and all share one placeholder share image,
-    // so only show the image on articles that actually have text (or a video).
+    // so only show the image on articles that actually have content of their own.
     const metaImg = doc.querySelector('meta[property="og:image"]');
-    const image = (body || embeds.length) && metaImg ? metaImg.getAttribute('content') : null;
+    const image = bodyContent.length && metaImg ? metaImg.getAttribute('content') : null;
 
-    return { title, image, date, tags, body, embeds, url };
+    return { title, image, date, tags, bodyContent, url };
 }
 
 // MTV's "كل الأخبار" (all news) feed.
@@ -1160,15 +1190,14 @@ async function scrapeMtvArticle(url) {
     const image = metaImg ? metaImg.getAttribute('content') : null;
 
     const bodyEl = doc.querySelector('.articles-main-content');
-    const embeds = extractEmbeds(bodyEl);
-    let body = '';
+    let bodyContent = [];
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
-        clone.querySelectorAll('script, style, iframe, ins, .article-ad, [id^="div-gpt-ad"]').forEach(n => n.remove());
-        body = blockText(clone);
+        clone.querySelectorAll('script, style, ins, .article-ad, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        bodyContent = blockContent(clone, { skipImageSrc: image ? [image] : [] });
     }
 
-    return { title, image, date, tags, body, embeds, url };
+    return { title, image, date, tags, bodyContent, url };
 }
 
 // LBCI's "آخر الأخبار" latest-news page. lbcgroup.tv sends
@@ -1211,15 +1240,14 @@ async function scrapeLbcArticle(url) {
     // .LongDesc is the article text itself.
     const bodyEl = doc.querySelector('[itemprop="articleBody"] .LongDesc')
         || doc.querySelector('[itemprop="articleBody"]');
-    const embeds = extractEmbeds(bodyEl);
-    let body = '';
+    let bodyContent = [];
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
-        clone.querySelectorAll('script, style, iframe, ins, .advertisement, [id^="div-gpt-ad"]').forEach(n => n.remove());
-        body = blockText(clone);
+        clone.querySelectorAll('script, style, ins, .advertisement, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        bodyContent = blockContent(clone, { skipImageSrc: image ? [image] : [] });
     }
 
-    return { title, image, date, tags, body, embeds, url };
+    return { title, image, date, tags, bodyContent, url };
 }
 
 // Lebanon 24's latest-news page. lebanon24.com sends
@@ -1283,19 +1311,18 @@ async function scrapeLebanon24Article(url) {
     const image = metaImg ? metaImg.getAttribute('content') : null;
 
     const bodyEl = doc.querySelector('[itemprop="articleBody"]');
-    const embeds = extractEmbeds(bodyEl);
-    let body = '';
+    let bodyContent = [];
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
         // .BannersControl_FullMainDiv is an ad slot dropped inside the text.
         // Its "Advertisement" label is plain text, so stripping only scripts
         // and styles leaves that word behind as the whole body on the
         // headline-only flashes.
-        clone.querySelectorAll('script, style, iframe, ins, input, .BannersControl_FullMainDiv, [class*="AddBannerHere"], [id^="div-gpt-ad"]').forEach(n => n.remove());
-        body = blockText(clone);
+        clone.querySelectorAll('script, style, ins, input, .BannersControl_FullMainDiv, [class*="AddBannerHere"], [id^="div-gpt-ad"]').forEach(n => n.remove());
+        bodyContent = blockContent(clone, { skipImageSrc: image ? [image] : [] });
     }
 
-    return { title, image, date, tags, body, embeds, url };
+    return { title, image, date, tags, bodyContent, url };
 }
 
 // L'Orient Today's live-news feed. Cloudflare serves this one a bot challenge,
@@ -1369,15 +1396,14 @@ async function scrapeLorientArticle(url) {
     const image = metaImg ? metaImg.getAttribute('content') : null;
 
     const bodyEl = doc.querySelector('.article-text-details');
-    const embeds = extractEmbeds(bodyEl);
-    let body = '';
+    let bodyContent = [];
     if (bodyEl) {
         const clone = bodyEl.cloneNode(true);
-        clone.querySelectorAll('script, style, iframe, ins, .advertisement, .subscribe, .copyrights, [id^="div-gpt-ad"]').forEach(n => n.remove());
-        body = blockText(clone);
+        clone.querySelectorAll('script, style, ins, .advertisement, .subscribe, .copyrights, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        bodyContent = blockContent(clone, { skipImageSrc: image ? [image] : [] });
     }
 
-    return { title, image, date, tags, body, embeds, url };
+    return { title, image, date, tags, bodyContent, url };
 }
 
 const loadingEl = document.getElementById('loading');
@@ -1562,11 +1588,12 @@ function openArticle(list, index) {
 
 // Shared by the open card and by the card sliding in behind a swipe.
 function renderArticleHtml(data, item) {
-    const paragraphs = (data.body || '').split(/\n+/).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`).join('');
-    const embedsHtml = (data.embeds || []).join('');
+    const bodyHtml = (data.bodyContent || [])
+        .map(s => s.type === 'p' ? `<p>${escapeHtml(s.text)}</p>` : s.html)
+        .join('');
     // News flashes are headline-only, so say so rather than showing a blank body
-    // — but a video-only article now counts as content.
-    const fallback = (!paragraphs && !embedsHtml) ? '<p>لا يتضمّن هذا الخبر نصّاً إضافيّاً.</p>' : '';
+    // — a video- or gallery-only article now counts as content.
+    const fallback = !bodyHtml ? '<p>لا يتضمّن هذا الخبر نصّاً إضافيّاً.</p>' : '';
     return `
         <h2 class="article-title">${escapeHtml(data.title)}</h2>
         <div class="article-meta">
@@ -1574,7 +1601,7 @@ function renderArticleHtml(data, item) {
             ${data.date ? escapeHtml(data.date) : ''}
         </div>
         ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
-        <div class="article-body">${paragraphs}${embedsHtml}${fallback}</div>
+        <div class="article-body">${bodyHtml}${fallback}</div>
         ${item.url ? `<div class="reader-source"><a href="${item.url}" target="_blank" rel="noopener">View original on ${data.siteName} ←</a></div>` : ''}
     `;
 }
@@ -1584,7 +1611,7 @@ const LOADING_HTML = '<div class="loading">Loading article…</div>';
 // A flash is only ever a headline and a clock time, so dress the row itself up
 // as the article rather than inventing a fetch that would have nothing to read.
 function flashData(item) {
-    return { title: item.title || '', image: null, date: item.time || '', tags: [], body: '' };
+    return { title: item.title || '', image: null, date: item.time || '', tags: [], bodyContent: [] };
 }
 
 async function showArticle(index) {
