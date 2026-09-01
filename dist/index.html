@@ -1324,11 +1324,15 @@ function escapeHtml(str) {
 
 function attachClicks(container) {
     // The whole panel becomes the article's context, so swiping can move to the
-    // next or previous row of the same list.
-    const nodes = Array.from(container.querySelectorAll('[data-url]'));
+    // next or previous row of the same list. Every row goes in, including the
+    // headline-only flashes that carry no article link: they have nothing to
+    // fetch, but paging past them without stopping loses them entirely.
+    const nodes = Array.from(container.querySelectorAll('.live-item'));
     const list = nodes.map(node => ({
-        url: decodeURIComponent(node.dataset.url),
+        url: node.dataset.url ? decodeURIComponent(node.dataset.url) : '',
         source: node.dataset.source,
+        title: node.dataset.title ? decodeURIComponent(node.dataset.title) : '',
+        time: node.dataset.time || '',
     }));
     nodes.forEach((node, index) => {
         node.addEventListener('click', () => openArticle(list, index));
@@ -1341,9 +1345,12 @@ function renderLiveList(panelId, items, source) {
         // A per-source panel passes one source for the whole list; in the
         // aggregate list every item carries its own.
         const src = item.source || source;
-        const attrs = item.url
-            ? `data-url="${encodeURIComponent(item.url)}"${src ? ` data-source="${src}"` : ''}`
-            : 'style="cursor:default"';
+        const attrs = [
+            `data-title="${encodeURIComponent(item.title || '')}"`,
+            `data-time="${escapeHtml(item.time || '')}"`,
+            item.url ? `data-url="${encodeURIComponent(item.url)}"` : '',
+            item.url && src ? `data-source="${src}"` : '',
+        ].filter(Boolean).join(' ');
         return `
         <div class="live-item" ${attrs}>
             <div class="time">${escapeHtml(item.time || '')}</div>
@@ -1436,7 +1443,7 @@ async function fetchArticle(url, source) {
 function prefetchNeighbours(index) {
     [index - 1, index + 1].forEach(i => {
         const item = articleList[i];
-        if (item && !articleCache.has(item.url)) {
+        if (item && item.url && !articleCache.has(item.url)) {
             fetchArticle(item.url, item.source).catch(() => { /* warmed on demand instead */ });
         }
     });
@@ -1494,11 +1501,17 @@ function renderArticleHtml(data, item) {
         </div>
         ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
         <div class="article-body">${paragraphs}</div>
-        <div class="reader-source"><a href="${item.url}" target="_blank" rel="noopener">View original on ${data.siteName} ←</a></div>
+        ${item.url ? `<div class="reader-source"><a href="${item.url}" target="_blank" rel="noopener">View original on ${data.siteName} ←</a></div>` : ''}
     `;
 }
 
 const LOADING_HTML = '<div class="loading">Loading article…</div>';
+
+// A flash is only ever a headline and a clock time, so dress the row itself up
+// as the article rather than inventing a fetch that would have nothing to read.
+function flashData(item) {
+    return { title: item.title || '', image: null, date: item.time || '', tags: [], body: '' };
+}
 
 async function showArticle(index) {
     const item = articleList[index];
@@ -1507,6 +1520,15 @@ async function showArticle(index) {
 
     modalPanel.scrollTop = 0;
     readerProgress.style.setProperty('--progress', '0%');
+
+    // A headline-only flash has no article behind it, so there is nothing to
+    // wait for: renderArticleHtml already supplies the "no further text" line.
+    if (!item.url) {
+        modalBody.innerHTML = renderArticleHtml(flashData(item), item);
+        updateReaderProgress();
+        return;
+    }
+
     if (!articleCache.has(item.url)) {
         modalBody.innerHTML = LOADING_HTML;
     }
@@ -1653,8 +1675,10 @@ function buildIncoming(dir) {
     modal.appendChild(el);
     incoming = { el, dir, index, stride: cardStride() };
 
-    const cached = articleCache.get(item.url);
-    if (cached) {
+    const cached = item.url ? articleCache.get(item.url) : null;
+    if (!item.url) {
+        body.innerHTML = renderArticleHtml(flashData(item), item);
+    } else if (cached) {
         body.innerHTML = renderArticleHtml(cached, item);
     } else {
         // Warm it so the card is not still a spinner once it lands.
@@ -1804,7 +1828,14 @@ readerModeBtn.addEventListener('click', () => {
 modalClose.addEventListener('click', () => closeArticle(false));
 modal.querySelector('.modal-backdrop').addEventListener('click', () => closeArticle(false));
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeArticle(false);
+    if (modal.classList.contains('hidden')) return;
+    if (e.key === 'Escape') { closeArticle(false); return; }
+    // RTL: the next article sits to the left, mirroring the touch swipe.
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const dir = e.key === 'ArrowLeft' ? 1 : -1;
+        if (articleList[articleIndex + dir]) showArticle(articleIndex + dir);
+        e.preventDefault();
+    }
 });
 
 const todayDateEl = document.getElementById('todayDate');
