@@ -1498,6 +1498,16 @@ function escapeHtml(str) {
     }[ch]));
 }
 
+// Naharnet publishes in English, but the page itself is dir="rtl" for the
+// Arabic sources, so English text ends up right-aligned. Flag anything with
+// more Latin than Arabic letters so the caller can flip it to LTR.
+function isEnglish(str) {
+    if (!str) return false;
+    const latin = (str.match(/[A-Za-z]/g) || []).length;
+    const arabic = (str.match(/[؀-ۿ]/g) || []).length;
+    return latin > arabic;
+}
+
 function attachClicks(container) {
     // The whole panel becomes the article's context, so swiping can move to the
     // next or previous row of the same list. Every row goes in, including the
@@ -1527,10 +1537,11 @@ function renderLiveList(panelId, items, source) {
             item.url ? `data-url="${encodeURIComponent(item.url)}"` : '',
             item.url && src ? `data-source="${src}"` : '',
         ].filter(Boolean).join(' ');
+        const titleDir = isEnglish(item.title) ? ' dir="ltr"' : '';
         return `
         <div class="live-item" ${attrs}>
             <div class="time">${escapeHtml(item.time || '')}</div>
-            <div class="title">${escapeHtml(item.title)}</div>
+            <div class="title"${titleDir}>${escapeHtml(item.title)}</div>
             ${item.sourceLabel ? `<span class="live-source">${escapeHtml(item.sourceLabel)}</span>` : ''}
             ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
         </div>`;
@@ -1673,14 +1684,16 @@ function renderArticleHtml(data, item) {
     // News flashes are headline-only, so say so rather than showing a blank body
     // — a video- or gallery-only article now counts as content.
     const fallback = !bodyHtml ? '<p>لا يتضمّن هذا الخبر نصّاً إضافيّاً.</p>' : '';
+    const firstPara = (data.bodyContent || []).find(s => s.type === 'p');
+    const dirAttr = isEnglish(data.title + ' ' + (firstPara ? firstPara.text : '')) ? ' dir="ltr"' : '';
     return `
-        <h2 class="article-title">${escapeHtml(data.title)}</h2>
+        <h2 class="article-title"${dirAttr}>${escapeHtml(data.title)}</h2>
         <div class="article-meta">
             ${(data.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
             ${data.date ? escapeHtml(data.date) : ''}
         </div>
         ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
-        <div class="article-body">${bodyHtml}${fallback}</div>
+        <div class="article-body"${dirAttr}>${bodyHtml}${fallback}</div>
         ${item.url ? `<div class="reader-source"><a href="${item.url}" target="_blank" rel="noopener">View original on ${data.siteName} ←</a></div>` : ''}
     `;
 }
