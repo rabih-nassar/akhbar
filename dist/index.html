@@ -580,6 +580,7 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
                     <button class="tab-btn" data-tab="lfiles">Lebanon Files</button>
                     <button class="tab-btn" data-tab="lorient">L'Orient Today</button>
                     <button class="tab-btn" data-tab="mtv">MTV</button>
+                    <button class="tab-btn" data-tab="naharnet">Naharnet</button>
                     <button class="tab-btn" data-tab="tayyar">Tayyar</button>
                 </div>
                 <div id="sourceConfig" class="source-config" hidden></div>
@@ -592,6 +593,7 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
                 <div id="live-lfiles" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-lorient" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-mtv" class="live-list tab-panel"><div class="loading">Loading…</div></div>
+                <div id="live-naharnet" class="live-list tab-panel"><div class="loading">Loading…</div></div>
                 <div id="live-tayyar" class="live-list tab-panel"><div class="loading">Loading…</div></div>
             </section>
         </div>
@@ -1406,6 +1408,82 @@ async function scrapeLorientArticle(url) {
     return { title, image, date, tags, bodyContent, url };
 }
 
+// Naharnet's Lebanon feed. The landing page lives at /lebanon; the "next" link
+// jumps to /tags/lebanon?page=2 and increments from there, so follow the real
+// rel="next" href instead of guessing the URL.
+const NAHARNET_BASE_URL = 'https://www.naharnet.com';
+const NAHARNET_LIVE_URL = NAHARNET_BASE_URL + '/lebanon';
+const NAHARNET_PAGES = 4;
+
+async function scrapeNaharnetLive() {
+    const items = [];
+    const seen = new Set();
+    let pageUrl = NAHARNET_LIVE_URL;
+
+    for (let page = 0; page < NAHARNET_PAGES && pageUrl; page++) {
+        const doc = parseHtml(await fetchHtml(pageUrl));
+
+        // Every page opens with one spotlight-story and then a run of
+        // latest-story rows; both use a.title for the headline link.
+        doc.querySelectorAll('.spotlight-story, .latest-story').forEach(el => {
+            const link = el.querySelector('a.title');
+            const href = absUrl(link && link.getAttribute('href'), NAHARNET_BASE_URL);
+            const title = text(link);
+            if (!href || !title || seen.has(href)) return;
+            seen.add(href);
+
+            // <abbr class="timeago" title="2026-09-03T10:01:37Z"> carries the
+            // exact UTC timestamp, so parse that rather than the visible label.
+            const timeEl = el.querySelector('abbr.timeago');
+            const iso = timeEl ? timeEl.getAttribute('title') : '';
+            const date = iso ? new Date(iso) : null;
+            const valid = date && !isNaN(date.getTime());
+            items.push({
+                id: href,
+                title,
+                url: href,
+                sortDate: valid ? date.getTime() : 0,
+                time: valid ? formatClockTime(date) : text(timeEl),
+            });
+        });
+
+        const next = doc.querySelector('.next a[rel="next"]') || doc.querySelector('a[rel="next"]');
+        pageUrl = next ? absUrl(next.getAttribute('href'), NAHARNET_BASE_URL) : null;
+    }
+
+    items.sort((a, b) => b.sortDate - a.sortDate);
+    return items;
+}
+
+async function scrapeNaharnetArticle(url) {
+    const doc = parseHtml(await fetchHtml(url));
+
+    const title = text(doc.querySelector('#story-page h1[itemprop="name"]'))
+        || text(doc.querySelector('h1'));
+
+    const date = text(doc.querySelector('.byline abbr.timeago'))
+        || text(doc.querySelector('.byline'));
+
+    // The story tags rail repeats the source ("Naharnet") ahead of the real
+    // topic tags; drop it so the reader header only shows subject tags.
+    const tags = Array.from(doc.querySelectorAll('#story-page .tags a.tag'))
+        .map(el => text(el))
+        .filter(t => t && t.toLowerCase() !== 'naharnet');
+
+    const imgEl = doc.querySelector('img[itemprop="image"]');
+    const image = imgEl ? imgEl.getAttribute('src') : null;
+
+    const bodyEl = doc.querySelector('[itemprop="description"]');
+    let bodyContent = [];
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style, ins, [id^="div-gpt-ad"]').forEach(n => n.remove());
+        bodyContent = blockContent(clone, { skipImageSrc: image ? [image] : [] });
+    }
+
+    return { title, image, date, tags, bodyContent, url };
+}
+
 const loadingEl = document.getElementById('loading');
 const contentEl = document.getElementById('content');
 const modal = document.getElementById('modal');
@@ -1517,6 +1595,7 @@ const ARTICLE_SOURCES = {
     lbc: { scrape: scrapeLbcArticle, site: 'lbcgroup.tv' },
     l24: { scrape: scrapeLebanon24Article, site: 'lebanon24.com' },
     lorient: { scrape: scrapeLorientArticle, site: 'lorientlejour.com' },
+    naharnet: { scrape: scrapeNaharnetArticle, site: 'naharnet.com' },
 };
 
 // Articles are fetched on demand, so paging into one that isn't loaded yet
@@ -1969,6 +2048,7 @@ const LIVE_SOURCES = [
     { key: 'lbc', label: 'LBCI', scrape: scrapeLbcLive },
     { key: 'l24', label: 'Lebanon 24', scrape: scrapeLebanon24Live },
     { key: 'lorient', label: "L'Orient Today", scrape: scrapeLorientLive },
+    { key: 'naharnet', label: 'Naharnet', scrape: scrapeNaharnetLive },
 ];
 
 const DAY_MS = 24 * 60 * 60 * 1000;

@@ -19,6 +19,7 @@ const ALLOWED_HOSTS = new Set([
     'lbcgroup.tv', 'www.lbcgroup.tv',
     'lebanon24.com', 'www.lebanon24.com',
     'today.lorientlejour.com', 'www.lorientlejour.com', 'lorientlejour.com',
+    'naharnet.com', 'www.naharnet.com',
 ]);
 
 const CORS_HEADERS = {
