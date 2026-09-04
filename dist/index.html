@@ -2096,20 +2096,26 @@ if (refreshBtn) {
  * We crop to the panel's current scroll viewport so the output is exactly
  * what the reader sees on their phone.
  */
-const HTML2CANVAS_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-let _html2canvasPromise = null;
-function loadHtml2Canvas() {
-    if (window.html2canvas) return Promise.resolve(window.html2canvas);
-    if (_html2canvasPromise) return _html2canvasPromise;
-    _html2canvasPromise = new Promise((resolve, reject) => {
+// html-to-image renders via SVG <foreignObject>, which hands the DOM to the
+// browser's native painter. No CSS parser, no color-function whitelist —
+// oklch(), color-mix() and every other modern colour just work, unlike
+// html2canvas 1.4.1 whose parser trips on this palette. Same
+// cross-origin-image issue though (the SVG image goes through the same taint
+// rules), so we still proxy news-CDN <img> to data URIs first.
+const HTML_TO_IMAGE_SRC = 'https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.js';
+let _htmlToImagePromise = null;
+function loadHtmlToImage() {
+    if (window.htmlToImage) return Promise.resolve(window.htmlToImage);
+    if (_htmlToImagePromise) return _htmlToImagePromise;
+    _htmlToImagePromise = new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = HTML2CANVAS_SRC;
+        s.src = HTML_TO_IMAGE_SRC;
         s.async = true;
-        s.onload = () => window.html2canvas ? resolve(window.html2canvas) : reject(new Error('html2canvas missing'));
-        s.onerror = () => reject(new Error('Failed to load html2canvas'));
+        s.onload = () => window.htmlToImage ? resolve(window.htmlToImage) : reject(new Error('html-to-image missing'));
+        s.onerror = () => reject(new Error('Failed to load html-to-image'));
         document.head.appendChild(s);
     });
-    return _html2canvasPromise;
+    return _htmlToImagePromise;
 }
 
 const _imgDataUriCache = new Map();
@@ -2142,134 +2148,12 @@ function _isCrossOrigin(url) {
     catch (e) { return false; }
 }
 
-// html2canvas 1.4.1 chokes on modern CSS color functions — oklch(), color-mix(),
-// lab/lch/oklab/hwb(), color(). This project's palette is oklch() top-to-bottom
-// (see :root at ~line 42), so the raw capture throws "unsupported color
-// function". Bake every affected color property on the clone down to rgba() by
-// painting it on a 1×1 canvas and reading the pixel back — the canvas accepts
-// any color the browser understands, and rgba() is html2canvas-safe.
-const _MODERN_COLOR_PROPS = [
-    'color', 'backgroundColor',
-    'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
-    'outlineColor', 'textDecorationColor', 'columnRuleColor', 'caretColor',
-    'fill', 'stroke'
-];
-function _makeRgbaResolver(doc) {
-    let ctx;
-    try { ctx = doc.createElement('canvas').getContext('2d', { willReadFrequently: true }); }
-    catch (e) { return null; }
-    if (!ctx) return null;
-    const cache = new Map();
-    return (v) => {
-        if (cache.has(v)) return cache.get(v);
-        let out = null;
-        try {
-            ctx.clearRect(0, 0, 1, 1);
-            ctx.fillStyle = '#000';
-            ctx.fillStyle = v;
-            ctx.fillRect(0, 0, 1, 1);
-            const d = ctx.getImageData(0, 0, 1, 1).data;
-            out = 'rgba(' + d[0] + ',' + d[1] + ',' + d[2] + ',' + (d[3] / 255) + ')';
-        } catch (e) { out = null; }
-        cache.set(v, out);
-        return out;
-    };
-}
-const _MODERN_COLOR_RE = /\b(color|color-mix|lab|lch|oklab|oklch|hwb)\(/i;
-const _MODERN_COLOR_FIND = /\b(color|color-mix|lab|lch|oklab|oklch|hwb)\(/gi;
-
-// Replace every bad color-function call inside a CSS value string with rgba().
-// Handles gradients (`linear-gradient(oklch(...) 0%, ...)`), shorthands
-// (`1px solid oklch(...)`), and any nested parens by matching braces manually.
-function _rewriteColorFunctions(val, toRgba) {
-    if (!val || !_MODERN_COLOR_RE.test(val)) return val;
-    let out = '';
-    let cursor = 0;
-    _MODERN_COLOR_FIND.lastIndex = 0;
-    let m;
-    while ((m = _MODERN_COLOR_FIND.exec(val)) !== null) {
-        const start = m.index;
-        let depth = 1;
-        let i = start + m[0].length;
-        while (i < val.length && depth > 0) {
-            const c = val[i++];
-            if (c === '(') depth++;
-            else if (c === ')') depth--;
-        }
-        if (depth !== 0) return val; // unbalanced — leave alone
-        const fnCall = val.slice(start, i);
-        const rgba = toRgba(fnCall);
-        out += val.slice(cursor, start) + (rgba || fnCall);
-        cursor = i;
-        _MODERN_COLOR_FIND.lastIndex = i;
-    }
-    out += val.slice(cursor);
-    return out;
-}
-
-// Walk every rule of every reachable stylesheet in the clone and rewrite
-// modern color functions in place. This is more thorough than patching computed
-// styles element-by-element: it catches rules html2canvas reads for pseudos, it
-// catches oklch buried inside gradients and shorthand shadows, and — crucially
-// for this project — it resolves the :root custom properties so every var(--x)
-// downstream expands to something the 1.4.1 parser accepts.
-function _normalizeStylesheets(doc, toRgba) {
-    const sheets = doc.styleSheets;
-    for (let i = 0; i < sheets.length; i++) {
-        let rules;
-        try { rules = sheets[i].cssRules; } catch (e) { continue; } // CORS-blocked
-        if (rules) _patchCssRules(rules, toRgba);
-    }
-}
-function _patchCssRules(rules, toRgba) {
-    for (let i = 0; i < rules.length; i++) {
-        const rule = rules[i];
-        const style = rule.style;
-        if (style) {
-            // Snapshot names first — mutating during iteration confuses the list.
-            const names = [];
-            for (let j = 0; j < style.length; j++) names.push(style[j]);
-            for (let j = 0; j < names.length; j++) {
-                const name = names[j];
-                const val = style.getPropertyValue(name);
-                if (val && _MODERN_COLOR_RE.test(val)) {
-                    const rewritten = _rewriteColorFunctions(val, toRgba);
-                    if (rewritten !== val) {
-                        try { style.setProperty(name, rewritten, style.getPropertyPriority(name)); }
-                        catch (e) { /* some rules refuse writes; skip */ }
-                    }
-                }
-            }
-        }
-        if (rule.cssRules) _patchCssRules(rule.cssRules, toRgba); // @media, @supports, …
-    }
-}
-
-// Catch the handful of rules that use oklch() literally (not via a variable) —
-// e.g. .modal-panel.reader-mode's background. The variable pass covers the rest.
-function _normalizeModernColors(doc, root, toRgba) {
-    const view = doc.defaultView || window;
-    const els = [root].concat(Array.prototype.slice.call(root.querySelectorAll('*')));
-    els.forEach((el) => {
-        if (!el.style) return;
-        const cs = view.getComputedStyle(el);
-        for (let i = 0; i < _MODERN_COLOR_PROPS.length; i++) {
-            const prop = _MODERN_COLOR_PROPS[i];
-            const val = cs[prop];
-            if (val && _MODERN_COLOR_RE.test(val)) {
-                const n = toRgba(val);
-                if (n) el.style[prop] = n;
-            }
-        }
-    });
-}
-
 async function captureVisibleCardAsImage() {
-    const html2canvas = await loadHtml2Canvas();
+    const htmlToImage = await loadHtmlToImage();
 
-    // 1. Swap every cross-origin <img> for a data URI so html2canvas doesn't
-    //    taint the canvas. Best-effort — anything the proxy rejects stays as
-    //    the original src and simply won't render into the screenshot.
+    // Swap every cross-origin <img> for a data URI so the SVG snapshot isn't
+    // tainted. Best-effort — anything the proxy rejects stays as the original
+    // src and simply won't render into the screenshot.
     const swaps = [];
     await Promise.all(Array.from(modalPanel.querySelectorAll('img')).map(async (img) => {
         const src = img.currentSrc || img.getAttribute('src');
@@ -2285,33 +2169,42 @@ async function captureVisibleCardAsImage() {
     await new Promise(r => setTimeout(r, 60));
 
     let blob;
-    modalPanel.setAttribute('data-ss-capture', '1');
     try {
         const panelBg = getComputedStyle(modalPanel).backgroundColor || '#fff';
-        const canvas = await html2canvas(modalPanel, {
-            useCORS: true,
+        const pixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
+        // html-to-image renders the whole element into an SVG the size of the
+        // element. We want just the viewport slice the reader is looking at, so
+        // we render at full size then draw the visible strip onto a smaller
+        // canvas ourselves. This works because the SVG snapshot is a still
+        // image — we can crop it as any other bitmap.
+        const fullDataUrl = await htmlToImage.toSvgDataURL(modalPanel, {
             backgroundColor: panelBg,
-            scale: window.devicePixelRatio > 1 ? 2 : 1,
-            logging: false,
-            x: 0,
-            y: modalPanel.scrollTop,
-            width: modalPanel.clientWidth,
-            height: modalPanel.clientHeight,
-            // Don't bake the action buttons into the saved image.
-            ignoreElements: (el) => el.classList && el.classList.contains('modal-actions'),
-            onclone: (clonedDoc) => {
-                const toRgba = _makeRgbaResolver(clonedDoc);
-                if (!toRgba) return;
-                _normalizeStylesheets(clonedDoc, toRgba);
-                const root = clonedDoc.querySelector('[data-ss-capture="1"]');
-                if (root) _normalizeModernColors(clonedDoc, root, toRgba);
-            }
+            pixelRatio: pixelRatio,
+            cacheBust: false,
+            filter: (node) => !(node.classList && node.classList.contains('modal-actions'))
         });
+        const img = new Image();
+        img.decoding = 'async';
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = () => reject(new Error('Failed to decode snapshot'));
+            img.src = fullDataUrl;
+        });
+        const cropW = modalPanel.clientWidth;
+        const cropH = modalPanel.clientHeight;
+        const canvas = document.createElement('canvas');
+        canvas.width = cropW * pixelRatio;
+        canvas.height = cropH * pixelRatio;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(
+            img,
+            0, modalPanel.scrollTop * pixelRatio, cropW * pixelRatio, cropH * pixelRatio,
+            0, 0, canvas.width, canvas.height
+        );
         blob = await new Promise((resolve, reject) => {
             canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas produced no image')), 'image/png');
         });
     } finally {
-        modalPanel.removeAttribute('data-ss-capture');
         // Restore the original srcs even if the capture threw.
         swaps.forEach(([img, src, srcset]) => {
             if (src == null) img.removeAttribute('src'); else img.setAttribute('src', src);
