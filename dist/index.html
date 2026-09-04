@@ -483,6 +483,18 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
 .save-image-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
 .save-image-btn:disabled { opacity: .5; cursor: default; }
 .save-image-btn.capturing svg { animation: spin .8s linear infinite; }
+
+/* ---------- Compact rules used only while a screenshot is being captured.
+   Tightens the article layout so a phone-screen slice fits noticeably more
+   text than the on-screen version. Toggled by adding data-capturing="1" on
+   modalPanel, reverted the instant the capture finishes.                   */
+.modal-panel[data-capturing="1"] { padding: 8px 0 12px; }
+.modal-panel[data-capturing="1"] .article-title { margin: 4px 0 8px; font-size: 24px; line-height: 1.25; }
+.modal-panel[data-capturing="1"] .article-meta { margin-bottom: 8px; }
+.modal-panel[data-capturing="1"] .article-image { margin: 0 auto 10px; max-width: min(560px, 60vw); }
+.modal-panel[data-capturing="1"] .article-body { line-height: 1.5; font-size: 15px; }
+.modal-panel[data-capturing="1"] .article-body p { margin: 0 0 0.55em; }
+.modal-panel[data-capturing="1"] .reader-source { margin-top: 16px; padding-top: 10px; }
 .reader-mode-btn.active {
     background: var(--accent);
     color: var(--accent-ink);
@@ -2167,12 +2179,17 @@ async function captureVisibleCardAsImage() {
     await new Promise(r => setTimeout(r, 60));
 
     let blob;
+    // Toggle compact layout for the duration of the capture. Force a reflow
+    // (offsetHeight read) so the render sees the reflowed sizes, then wait
+    // one frame in case any transitions are still settling.
+    modalPanel.setAttribute('data-capturing', '1');
+    modalPanel.offsetHeight; // eslint-disable-line no-unused-expressions
+    await new Promise(r => requestAnimationFrame(r));
     try {
         const panelBg = getComputedStyle(modalPanel).backgroundColor || '#fff';
         const pixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
-        // Render the whole panel to a canvas via html-to-image, then draw the
-        // visible viewport strip (y = scrollTop, height = clientHeight) into
-        // a smaller canvas ourselves — keeps the "just what's on screen" crop.
+        const cropW = modalPanel.clientWidth;
+        const cropH = modalPanel.clientHeight;
         const fullCanvas = await htmlToImage.toCanvas(modalPanel, {
             backgroundColor: panelBg,
             pixelRatio: pixelRatio,
@@ -2184,21 +2201,47 @@ async function captureVisibleCardAsImage() {
             skipFonts: true,
             filter: (node) => !(node.classList && node.classList.contains('modal-actions'))
         });
-        const cropW = modalPanel.clientWidth;
-        const cropH = modalPanel.clientHeight;
+        // Compose: branded caption strip on top, cropped article viewport below.
+        const captionCssH = 28;
+        const captionH = captionCssH * pixelRatio;
         const canvas = document.createElement('canvas');
         canvas.width = cropW * pixelRatio;
-        canvas.height = cropH * pixelRatio;
+        canvas.height = cropH * pixelRatio + captionH;
         const ctx = canvas.getContext('2d');
+        // Caption background — same as the panel so the strip reads as one card.
+        ctx.fillStyle = panelBg;
+        ctx.fillRect(0, 0, canvas.width, captionH);
+        // Caption text: "Saved using " muted + "akhbar.fyi" in the brand accent.
+        const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c8422a';
+        const fontPx = 12 * pixelRatio;
+        ctx.font = fontPx + 'px "Zilla Slab", Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const prefix = 'Saved using ';
+        const brand = 'akhbar.fyi';
+        const wPrefix = ctx.measureText(prefix).width;
+        const wBrand = ctx.measureText(brand).width;
+        const totalW = wPrefix + wBrand;
+        const startX = (canvas.width - totalW) / 2;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.textAlign = 'left';
+        ctx.fillText(prefix, startX, captionH / 2);
+        ctx.fillStyle = accent;
+        ctx.fillText(brand, startX + wPrefix, captionH / 2);
+        // Hairline separator under the strip.
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fillRect(0, captionH - 1, canvas.width, 1);
+        // Cropped article viewport, offset down by the caption height.
         ctx.drawImage(
             fullCanvas,
             0, modalPanel.scrollTop * pixelRatio, cropW * pixelRatio, cropH * pixelRatio,
-            0, 0, canvas.width, canvas.height
+            0, captionH, cropW * pixelRatio, cropH * pixelRatio
         );
         blob = await new Promise((resolve, reject) => {
             canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas produced no image')), 'image/png');
         });
     } finally {
+        modalPanel.removeAttribute('data-capturing');
         // Restore the original srcs even if the capture threw.
         swaps.forEach(([img, src, srcset]) => {
             if (src == null) img.removeAttribute('src'); else img.setAttribute('src', src);
