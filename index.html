@@ -2172,23 +2172,14 @@ async function captureVisibleCardAsImage() {
     try {
         const panelBg = getComputedStyle(modalPanel).backgroundColor || '#fff';
         const pixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
-        // html-to-image renders the whole element into an SVG the size of the
-        // element. We want just the viewport slice the reader is looking at, so
-        // we render at full size then draw the visible strip onto a smaller
-        // canvas ourselves. This works because the SVG snapshot is a still
-        // image — we can crop it as any other bitmap.
-        const fullDataUrl = await htmlToImage.toSvgDataURL(modalPanel, {
+        // Render the whole panel to a canvas via html-to-image, then draw the
+        // visible viewport strip (y = scrollTop, height = clientHeight) into
+        // a smaller canvas ourselves — keeps the "just what's on screen" crop.
+        const fullCanvas = await htmlToImage.toCanvas(modalPanel, {
             backgroundColor: panelBg,
             pixelRatio: pixelRatio,
             cacheBust: false,
             filter: (node) => !(node.classList && node.classList.contains('modal-actions'))
-        });
-        const img = new Image();
-        img.decoding = 'async';
-        await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = () => reject(new Error('Failed to decode snapshot'));
-            img.src = fullDataUrl;
         });
         const cropW = modalPanel.clientWidth;
         const cropH = modalPanel.clientHeight;
@@ -2197,7 +2188,7 @@ async function captureVisibleCardAsImage() {
         canvas.height = cropH * pixelRatio;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(
-            img,
+            fullCanvas,
             0, modalPanel.scrollTop * pixelRatio, cropW * pixelRatio, cropH * pixelRatio,
             0, 0, canvas.width, canvas.height
         );
