@@ -2176,27 +2176,72 @@ function _makeRgbaResolver(doc) {
     };
 }
 const _MODERN_COLOR_RE = /\b(color|color-mix|lab|lch|oklab|oklch|hwb)\(/i;
+const _MODERN_COLOR_FIND = /\b(color|color-mix|lab|lch|oklab|oklch|hwb)\(/gi;
 
-// The palette lives entirely in :root CSS custom properties (--accent, --panel,
-// --border, …), each oklch(). html2canvas resolves var(...) via getComputedStyle
-// which returns the oklch string verbatim — patching backgroundColor on one
-// element isn't enough because the parser still trips on any other rule that
-// reads the same variable. Overwriting the variables themselves at :root cuts
-// the problem off at the source: every `var(--x)` downstream now expands to a
-// safe rgba().
-function _normalizeCssVariables(doc, toRgba) {
-    const view = doc.defaultView || window;
-    const root = doc.documentElement;
-    if (!root || !root.style) return;
-    const cs = view.getComputedStyle(root);
-    for (let i = 0; i < cs.length; i++) {
-        const name = cs[i];
-        if (!name || name.slice(0, 2) !== '--') continue;
-        const val = cs.getPropertyValue(name).trim();
-        if (val && _MODERN_COLOR_RE.test(val)) {
-            const rgba = toRgba(val);
-            if (rgba) root.style.setProperty(name, rgba);
+// Replace every bad color-function call inside a CSS value string with rgba().
+// Handles gradients (`linear-gradient(oklch(...) 0%, ...)`), shorthands
+// (`1px solid oklch(...)`), and any nested parens by matching braces manually.
+function _rewriteColorFunctions(val, toRgba) {
+    if (!val || !_MODERN_COLOR_RE.test(val)) return val;
+    let out = '';
+    let cursor = 0;
+    _MODERN_COLOR_FIND.lastIndex = 0;
+    let m;
+    while ((m = _MODERN_COLOR_FIND.exec(val)) !== null) {
+        const start = m.index;
+        let depth = 1;
+        let i = start + m[0].length;
+        while (i < val.length && depth > 0) {
+            const c = val[i++];
+            if (c === '(') depth++;
+            else if (c === ')') depth--;
         }
+        if (depth !== 0) return val; // unbalanced — leave alone
+        const fnCall = val.slice(start, i);
+        const rgba = toRgba(fnCall);
+        out += val.slice(cursor, start) + (rgba || fnCall);
+        cursor = i;
+        _MODERN_COLOR_FIND.lastIndex = i;
+    }
+    out += val.slice(cursor);
+    return out;
+}
+
+// Walk every rule of every reachable stylesheet in the clone and rewrite
+// modern color functions in place. This is more thorough than patching computed
+// styles element-by-element: it catches rules html2canvas reads for pseudos, it
+// catches oklch buried inside gradients and shorthand shadows, and — crucially
+// for this project — it resolves the :root custom properties so every var(--x)
+// downstream expands to something the 1.4.1 parser accepts.
+function _normalizeStylesheets(doc, toRgba) {
+    const sheets = doc.styleSheets;
+    for (let i = 0; i < sheets.length; i++) {
+        let rules;
+        try { rules = sheets[i].cssRules; } catch (e) { continue; } // CORS-blocked
+        if (rules) _patchCssRules(rules, toRgba);
+    }
+}
+function _patchCssRules(rules, toRgba) {
+    for (let i = 0; i < rules.length; i++) {
+        const rule = rules[i];
+        const style = rule.style;
+        if (style) {
+            // Snapshot names first — mutating during iteration confuses the list.
+            const names = [];
+            for (let j = 0; j < style.length; j++) names.push(style[j]);
+            for (let j = 0; j < names.length; j++) {
+                const name = names[j];
+                const val = style.getPropertyValue(name);
+                if (val && _MODERN_COLOR_RE.test(val)) {
+                    const rewritten = _rewriteColorFunctions(val, toRgba);
+                    if (rewritten !== val) {
+                        try { style.setProperty(name, rewritten, style.getPropertyPriority(name)); }
+                        catch (e) { /* some rules refuse writes; skip */ }
+                    }
+                }
+            }
+        }
+        if (rule.cssRules) _patchCssRules(rule.cssRules, toRgba); // @media, @supports, …
     }
 }
 
@@ -2257,7 +2302,7 @@ async function captureVisibleCardAsImage() {
             onclone: (clonedDoc) => {
                 const toRgba = _makeRgbaResolver(clonedDoc);
                 if (!toRgba) return;
-                _normalizeCssVariables(clonedDoc, toRgba);
+                _normalizeStylesheets(clonedDoc, toRgba);
                 const root = clonedDoc.querySelector('[data-ss-capture="1"]');
                 if (root) _normalizeModernColors(clonedDoc, root, toRgba);
             }
