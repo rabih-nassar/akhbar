@@ -2142,6 +2142,55 @@ function _isCrossOrigin(url) {
     catch (e) { return false; }
 }
 
+// html2canvas 1.4.1 chokes on modern CSS color functions — oklch(), color-mix(),
+// lab/lch/oklab/hwb(), color(). This project's palette is oklch() top-to-bottom
+// (see :root at ~line 42), so the raw capture throws "unsupported color
+// function". Bake every affected color property on the clone down to rgba() by
+// painting it on a 1×1 canvas and reading the pixel back — the canvas accepts
+// any color the browser understands, and rgba() is html2canvas-safe.
+const _MODERN_COLOR_PROPS = [
+    'color', 'backgroundColor',
+    'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
+    'outlineColor', 'textDecorationColor', 'columnRuleColor', 'caretColor',
+    'fill', 'stroke'
+];
+function _normalizeModernColors(doc, root) {
+    const view = doc.defaultView || window;
+    let ctx;
+    try { ctx = doc.createElement('canvas').getContext('2d', { willReadFrequently: true }); }
+    catch (e) { return; }
+    if (!ctx) return;
+    const cache = new Map();
+    const bad = /\b(color|color-mix|lab|lch|oklab|oklch|hwb)\(/i;
+    const toRgba = (v) => {
+        if (cache.has(v)) return cache.get(v);
+        let out = null;
+        try {
+            ctx.clearRect(0, 0, 1, 1);
+            ctx.fillStyle = '#000';
+            ctx.fillStyle = v;
+            ctx.fillRect(0, 0, 1, 1);
+            const d = ctx.getImageData(0, 0, 1, 1).data;
+            out = 'rgba(' + d[0] + ',' + d[1] + ',' + d[2] + ',' + (d[3] / 255) + ')';
+        } catch (e) { out = null; }
+        cache.set(v, out);
+        return out;
+    };
+    const els = [root].concat(Array.prototype.slice.call(root.querySelectorAll('*')));
+    els.forEach((el) => {
+        if (!el.style) return;
+        const cs = view.getComputedStyle(el);
+        for (let i = 0; i < _MODERN_COLOR_PROPS.length; i++) {
+            const prop = _MODERN_COLOR_PROPS[i];
+            const val = cs[prop];
+            if (val && bad.test(val)) {
+                const n = toRgba(val);
+                if (n) el.style[prop] = n;
+            }
+        }
+    });
+}
+
 async function captureVisibleCardAsImage() {
     const html2canvas = await loadHtml2Canvas();
 
@@ -2163,6 +2212,7 @@ async function captureVisibleCardAsImage() {
     await new Promise(r => setTimeout(r, 60));
 
     let blob;
+    modalPanel.setAttribute('data-ss-capture', '1');
     try {
         const panelBg = getComputedStyle(modalPanel).backgroundColor || '#fff';
         const canvas = await html2canvas(modalPanel, {
@@ -2175,12 +2225,17 @@ async function captureVisibleCardAsImage() {
             width: modalPanel.clientWidth,
             height: modalPanel.clientHeight,
             // Don't bake the action buttons into the saved image.
-            ignoreElements: (el) => el.classList && el.classList.contains('modal-actions')
+            ignoreElements: (el) => el.classList && el.classList.contains('modal-actions'),
+            onclone: (clonedDoc) => {
+                const root = clonedDoc.querySelector('[data-ss-capture="1"]');
+                if (root) _normalizeModernColors(clonedDoc, root);
+            }
         });
         blob = await new Promise((resolve, reject) => {
             canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas produced no image')), 'image/png');
         });
     } finally {
+        modalPanel.removeAttribute('data-ss-capture');
         // Restore the original srcs even if the capture threw.
         swaps.forEach(([img, src, srcset]) => {
             if (src == null) img.removeAttribute('src'); else img.setAttribute('src', src);
