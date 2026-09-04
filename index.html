@@ -460,7 +460,7 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
     display: flex;
     gap: 8px;
 }
-.modal-close, .reader-mode-btn, .reader-font-btn {
+.modal-close, .reader-mode-btn, .reader-font-btn, .save-image-btn {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 50%;
@@ -479,6 +479,10 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
 .modal-close:hover { color: var(--accent); border-color: var(--accent); transform: rotate(90deg); }
 .reader-mode-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 .reader-mode-btn:hover { color: var(--accent); border-color: var(--accent); }
+.save-image-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.save-image-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.save-image-btn:disabled { opacity: .5; cursor: default; }
+.save-image-btn.capturing svg { animation: spin .8s linear infinite; }
 .reader-mode-btn.active {
     background: var(--accent);
     color: var(--accent-ink);
@@ -648,6 +652,9 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
                     <svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3 8.6"/><path d="M3 3.5V9h5.5"/></svg>
                 </button>
                 <button id="fontIncBtn" class="reader-font-btn" title="Increase text size" aria-label="Increase text size">A<small>+</small></button>
+                <button id="saveImageBtn" class="save-image-btn" title="Save as image" aria-label="Save as image">
+                    <svg viewBox="0 0 24 24"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13" r="4"/></svg>
+                </button>
                 <button id="modalClose" class="modal-close">
                     <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>
                 </button>
@@ -2078,6 +2085,149 @@ if (refreshBtn) {
         refreshBtn.classList.add('spinning');
         refreshBtn.disabled = true;
         location.reload();
+    });
+}
+
+/* ---------- Save-visible-card-as-image ---------------------------------
+ * Mechanics copied from the cartaja WhatsApp emulator's ScreenshotCapture:
+ * html2canvas taints its canvas on cross-origin <img>, so before capturing we
+ * proxy every cross-origin image through our /proxy worker (whitelisted news
+ * hosts) into a data URI, swap it into the live DOM, capture, then restore.
+ * We crop to the panel's current scroll viewport so the output is exactly
+ * what the reader sees on their phone.
+ */
+const HTML2CANVAS_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+let _html2canvasPromise = null;
+function loadHtml2Canvas() {
+    if (window.html2canvas) return Promise.resolve(window.html2canvas);
+    if (_html2canvasPromise) return _html2canvasPromise;
+    _html2canvasPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = HTML2CANVAS_SRC;
+        s.async = true;
+        s.onload = () => window.html2canvas ? resolve(window.html2canvas) : reject(new Error('html2canvas missing'));
+        s.onerror = () => reject(new Error('Failed to load html2canvas'));
+        document.head.appendChild(s);
+    });
+    return _html2canvasPromise;
+}
+
+const _imgDataUriCache = new Map();
+async function _imageToDataUri(url) {
+    if (_imgDataUriCache.has(url)) return _imgDataUriCache.get(url);
+    const load = async () => {
+        // Direct CORS first — some CDNs do send the header and we save a hop.
+        let res = await fetch(url, { mode: 'cors' }).catch(() => null);
+        if (!res || !res.ok) {
+            // Fall back to our own worker (see worker/index.mjs). Restricted
+            // to the news hosts we scrape, so most article images qualify.
+            res = await fetch('/proxy?url=' + encodeURIComponent(url)).catch(() => null);
+        }
+        if (!res || !res.ok) return null;
+        const blob = await res.blob();
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+        });
+    };
+    const dataUri = await load();
+    if (dataUri) _imgDataUriCache.set(url, dataUri);
+    return dataUri;
+}
+
+function _isCrossOrigin(url) {
+    try { return new URL(url, location.href).origin !== location.origin; }
+    catch (e) { return false; }
+}
+
+async function captureVisibleCardAsImage() {
+    const html2canvas = await loadHtml2Canvas();
+
+    // 1. Swap every cross-origin <img> for a data URI so html2canvas doesn't
+    //    taint the canvas. Best-effort — anything the proxy rejects stays as
+    //    the original src and simply won't render into the screenshot.
+    const swaps = [];
+    await Promise.all(Array.from(modalPanel.querySelectorAll('img')).map(async (img) => {
+        const src = img.currentSrc || img.getAttribute('src');
+        if (!src || src.startsWith('data:') || !_isCrossOrigin(src)) return;
+        const dataUri = await _imageToDataUri(src);
+        if (dataUri) {
+            swaps.push([img, img.getAttribute('src'), img.getAttribute('srcset')]);
+            img.setAttribute('src', dataUri);
+            img.removeAttribute('srcset');
+        }
+    }));
+    // Let the swapped-in data URIs decode before we snapshot.
+    await new Promise(r => setTimeout(r, 60));
+
+    let blob;
+    try {
+        const panelBg = getComputedStyle(modalPanel).backgroundColor || '#fff';
+        const canvas = await html2canvas(modalPanel, {
+            useCORS: true,
+            backgroundColor: panelBg,
+            scale: window.devicePixelRatio > 1 ? 2 : 1,
+            logging: false,
+            x: 0,
+            y: modalPanel.scrollTop,
+            width: modalPanel.clientWidth,
+            height: modalPanel.clientHeight,
+            // Don't bake the action buttons into the saved image.
+            ignoreElements: (el) => el.classList && el.classList.contains('modal-actions')
+        });
+        blob = await new Promise((resolve, reject) => {
+            canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas produced no image')), 'image/png');
+        });
+    } finally {
+        // Restore the original srcs even if the capture threw.
+        swaps.forEach(([img, src, srcset]) => {
+            if (src == null) img.removeAttribute('src'); else img.setAttribute('src', src);
+            if (srcset != null) img.setAttribute('srcset', srcset);
+        });
+    }
+
+    const filename = 'akhbar-' + Date.now() + '.png';
+
+    // On mobile the Share sheet is the native way to save/send — it drops the
+    // image into Photos or WhatsApp with a tap. Desktop and browsers without
+    // file-share fall through to a plain download.
+    if (navigator.canShare) {
+        try {
+            const file = new File([blob], filename, { type: 'image/png' });
+            if (navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file] });
+                return;
+            }
+        } catch (e) {
+            // User cancelled or share failed — fall through to download.
+        }
+    }
+    const a = document.createElement('a');
+    const objectUrl = URL.createObjectURL(blob);
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
+const saveImageBtn = document.getElementById('saveImageBtn');
+if (saveImageBtn) {
+    saveImageBtn.addEventListener('click', async () => {
+        if (saveImageBtn.disabled) return;
+        saveImageBtn.disabled = true;
+        saveImageBtn.classList.add('capturing');
+        try {
+            await captureVisibleCardAsImage();
+        } catch (e) {
+            console.error('Screenshot failed', e);
+        } finally {
+            saveImageBtn.disabled = false;
+            saveImageBtn.classList.remove('capturing');
+        }
     });
 }
 
