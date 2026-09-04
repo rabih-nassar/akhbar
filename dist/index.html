@@ -2177,6 +2177,11 @@ async function captureVisibleCardAsImage() {
             backgroundColor: panelBg,
             pixelRatio: pixelRatio,
             cacheBust: false,
+            // We paint the SVG to a canvas in the same session — the browser
+            // has the fonts loaded already, so we don't need html-to-image to
+            // inline the Google Fonts stylesheet (which it can't read anyway,
+            // and which logs a SecurityError on cross-origin cssRules).
+            skipFonts: true,
             filter: (node) => !(node.classList && node.classList.contains('modal-actions'))
         });
         const cropW = modalPanel.clientWidth;
