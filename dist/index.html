@@ -2154,15 +2154,13 @@ const _MODERN_COLOR_PROPS = [
     'outlineColor', 'textDecorationColor', 'columnRuleColor', 'caretColor',
     'fill', 'stroke'
 ];
-function _normalizeModernColors(doc, root) {
-    const view = doc.defaultView || window;
+function _makeRgbaResolver(doc) {
     let ctx;
     try { ctx = doc.createElement('canvas').getContext('2d', { willReadFrequently: true }); }
-    catch (e) { return; }
-    if (!ctx) return;
+    catch (e) { return null; }
+    if (!ctx) return null;
     const cache = new Map();
-    const bad = /\b(color|color-mix|lab|lch|oklab|oklch|hwb)\(/i;
-    const toRgba = (v) => {
+    return (v) => {
         if (cache.has(v)) return cache.get(v);
         let out = null;
         try {
@@ -2176,6 +2174,36 @@ function _normalizeModernColors(doc, root) {
         cache.set(v, out);
         return out;
     };
+}
+const _MODERN_COLOR_RE = /\b(color|color-mix|lab|lch|oklab|oklch|hwb)\(/i;
+
+// The palette lives entirely in :root CSS custom properties (--accent, --panel,
+// --border, …), each oklch(). html2canvas resolves var(...) via getComputedStyle
+// which returns the oklch string verbatim — patching backgroundColor on one
+// element isn't enough because the parser still trips on any other rule that
+// reads the same variable. Overwriting the variables themselves at :root cuts
+// the problem off at the source: every `var(--x)` downstream now expands to a
+// safe rgba().
+function _normalizeCssVariables(doc, toRgba) {
+    const view = doc.defaultView || window;
+    const root = doc.documentElement;
+    if (!root || !root.style) return;
+    const cs = view.getComputedStyle(root);
+    for (let i = 0; i < cs.length; i++) {
+        const name = cs[i];
+        if (!name || name.slice(0, 2) !== '--') continue;
+        const val = cs.getPropertyValue(name).trim();
+        if (val && _MODERN_COLOR_RE.test(val)) {
+            const rgba = toRgba(val);
+            if (rgba) root.style.setProperty(name, rgba);
+        }
+    }
+}
+
+// Catch the handful of rules that use oklch() literally (not via a variable) —
+// e.g. .modal-panel.reader-mode's background. The variable pass covers the rest.
+function _normalizeModernColors(doc, root, toRgba) {
+    const view = doc.defaultView || window;
     const els = [root].concat(Array.prototype.slice.call(root.querySelectorAll('*')));
     els.forEach((el) => {
         if (!el.style) return;
@@ -2183,7 +2211,7 @@ function _normalizeModernColors(doc, root) {
         for (let i = 0; i < _MODERN_COLOR_PROPS.length; i++) {
             const prop = _MODERN_COLOR_PROPS[i];
             const val = cs[prop];
-            if (val && bad.test(val)) {
+            if (val && _MODERN_COLOR_RE.test(val)) {
                 const n = toRgba(val);
                 if (n) el.style[prop] = n;
             }
@@ -2227,8 +2255,11 @@ async function captureVisibleCardAsImage() {
             // Don't bake the action buttons into the saved image.
             ignoreElements: (el) => el.classList && el.classList.contains('modal-actions'),
             onclone: (clonedDoc) => {
+                const toRgba = _makeRgbaResolver(clonedDoc);
+                if (!toRgba) return;
+                _normalizeCssVariables(clonedDoc, toRgba);
                 const root = clonedDoc.querySelector('[data-ss-capture="1"]');
-                if (root) _normalizeModernColors(clonedDoc, root);
+                if (root) _normalizeModernColors(clonedDoc, root, toRgba);
             }
         });
         blob = await new Promise((resolve, reject) => {

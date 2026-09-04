@@ -10,17 +10,24 @@
  * the app actually reads so it can't be used as an open proxy.
  */
 
-const ALLOWED_HOSTS = new Set([
-    'tayyar.org', 'www.tayyar.org',
-    'elnashra.com', 'www.elnashra.com',
-    'lebanondebate.com', 'www.lebanondebate.com',
-    'lebanonfiles.com', 'www.lebanonfiles.com',
-    'mtv.com.lb', 'www.mtv.com.lb',
-    'lbcgroup.tv', 'www.lbcgroup.tv',
-    'lebanon24.com', 'www.lebanon24.com',
-    'today.lorientlejour.com', 'www.lorientlejour.com', 'lorientlejour.com',
-    'naharnet.com', 'www.naharnet.com',
-]);
+// Any subdomain of one of these registrable domains is fair game. Image CDNs
+// live on their own subdomains (imagescdn.mtv.com.lb, cdn.lebanon24.com, …)
+// and the screenshot feature has to be able to proxy them the same way the
+// article HTML is proxied. Matched by endsWith('.' + domain) or equality.
+const ALLOWED_DOMAINS = [
+    'tayyar.org',
+    'elnashra.com',
+    'lebanondebate.com',
+    'lebanonfiles.com',
+    'mtv.com.lb',
+    'lbcgroup.tv',
+    'lebanon24.com',
+    'lorientlejour.com',
+    'naharnet.com',
+];
+function isAllowedHost(hostname) {
+    return ALLOWED_DOMAINS.some(d => hostname === d || hostname.endsWith('.' + d));
+}
 
 const CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
@@ -52,7 +59,7 @@ export default {
         } catch (e) {
             return plain('Invalid url parameter', 400);
         }
-        if (targetUrl.protocol !== 'https:' || !ALLOWED_HOSTS.has(targetUrl.hostname)) {
+        if (targetUrl.protocol !== 'https:' || !isAllowedHost(targetUrl.hostname)) {
             return plain('Host not allowed', 403);
         }
 
