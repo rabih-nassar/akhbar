@@ -2121,14 +2121,12 @@ function loadHtmlToImage() {
 const _imgDataUriCache = new Map();
 async function _imageToDataUri(url) {
     if (_imgDataUriCache.has(url)) return _imgDataUriCache.get(url);
+    // Straight to our /proxy worker (see worker/index.mjs). We used to try a
+    // direct CORS fetch first, but every news CDN we deal with strips the
+    // header, so the attempt only served to spam the console with CORS errors
+    // that fired at browser level BEFORE our catch could silence them.
     const load = async () => {
-        // Direct CORS first — some CDNs do send the header and we save a hop.
-        let res = await fetch(url, { mode: 'cors' }).catch(() => null);
-        if (!res || !res.ok) {
-            // Fall back to our own worker (see worker/index.mjs). Restricted
-            // to the news hosts we scrape, so most article images qualify.
-            res = await fetch('/proxy?url=' + encodeURIComponent(url)).catch(() => null);
-        }
+        const res = await fetch('/proxy?url=' + encodeURIComponent(url)).catch(() => null);
         if (!res || !res.ok) return null;
         const blob = await res.blob();
         return new Promise((resolve) => {
