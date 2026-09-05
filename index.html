@@ -493,6 +493,9 @@ main#app { padding: 32px 24px 60px; max-width: 820px; margin: 0 auto; }
     border: none;
     border-radius: 0;
     scrollbar-width: none;
+    /* Kill the .3s transition on padding/border/radius — otherwise the capture
+       fires mid-animation and bakes in the near-68px starting padding. */
+    transition: none;
 }
 .modal-panel[data-capturing="1"]::-webkit-scrollbar { display: none; }
 .modal-panel[data-capturing="1"] .article-title { margin: 4px 0 6px; font-size: 24px; line-height: 1.25; }
