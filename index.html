@@ -2243,6 +2243,38 @@ async function captureVisibleCardAsImage() {
             0, modalPanel.scrollTop * pixelRatio, cropW * pixelRatio, cropH * pixelRatio,
             0, captionH, cropW * pixelRatio, cropH * pixelRatio
         );
+        // Bottom overlay: original article URL on a translucent dark strip.
+        // Headline-only flashes have no URL, so nothing to render.
+        const articleUrl = articleList[articleIndex] && articleList[articleIndex].url;
+        if (articleUrl) {
+            const urlFontPx = 10 * pixelRatio;
+            const urlPadX = 12 * pixelRatio;
+            const urlPadY = 6 * pixelRatio;
+            const urlLineH = Math.round(urlFontPx * 1.4);
+            ctx.font = urlFontPx + 'px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            const maxW = canvas.width - 2 * urlPadX;
+            // Greedy character-wise wrap — URLs have no spaces to break on and
+            // a "…" ellipsis would defeat the point (the whole URL is the ask).
+            const lines = [];
+            let start = 0;
+            while (start < articleUrl.length) {
+                let end = articleUrl.length;
+                while (end > start && ctx.measureText(articleUrl.slice(start, end)).width > maxW) end--;
+                if (end === start) end = start + 1; // pathological narrow strip
+                lines.push(articleUrl.slice(start, end));
+                start = end;
+            }
+            const overlayH = 2 * urlPadY + lines.length * urlLineH;
+            const overlayY = canvas.height - overlayH;
+            ctx.fillStyle = 'rgba(0,0,0,0.72)';
+            ctx.fillRect(0, overlayY, canvas.width, overlayH);
+            ctx.fillStyle = 'rgba(255,255,255,0.95)';
+            for (let i = 0; i < lines.length; i++) {
+                ctx.fillText(lines[i], urlPadX, overlayY + urlPadY + i * urlLineH);
+            }
+        }
         blob = await new Promise((resolve, reject) => {
             canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas produced no image')), 'image/png');
         });
