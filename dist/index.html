@@ -2172,6 +2172,10 @@ async function captureVisibleCardAsImage() {
     // src and simply won't render into the screenshot.
     const swaps = [];
     await Promise.all(Array.from(modalPanel.querySelectorAll('img')).map(async (img) => {
+        // If the browser has already tried and failed to load this image
+        // (upstream 404, DNS miss, …) don't burn a proxy round-trip on it —
+        // we'll skip it entirely in the html-to-image filter below.
+        if (img.complete && img.naturalWidth === 0) return;
         const src = img.currentSrc || img.getAttribute('src');
         if (!src || src.startsWith('data:') || !_isCrossOrigin(src)) return;
         const dataUri = await _imageToDataUri(src);
@@ -2205,7 +2209,16 @@ async function captureVisibleCardAsImage() {
             // inline the Google Fonts stylesheet (which it can't read anyway,
             // and which logs a SecurityError on cross-origin cssRules).
             skipFonts: true,
-            filter: (node) => !(node.classList && node.classList.contains('modal-actions'))
+            // 1×1 transparent gif — any resource html-to-image itself can't
+            // load falls back to this instead of rejecting the whole render.
+            imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',
+            filter: (node) => {
+                if (node.classList && node.classList.contains('modal-actions')) return false;
+                // Drop broken images entirely so html-to-image doesn't try to
+                // re-fetch them (and reject the whole capture on failure).
+                if (node.tagName === 'IMG' && node.complete && node.naturalWidth === 0) return false;
+                return true;
+            }
         });
         // Compose: branded caption strip on top, cropped article viewport below.
         const captionCssH = 28;
