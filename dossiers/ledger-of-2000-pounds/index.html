@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>The Ledger — U.S. Heavy Munitions Transfers to Israel, 2021–2026</title>
+<script>
+/* Resolve the theme before first paint so there is no flash of the wrong palette.
+   Paper is the default; the OS preference does not override it, only a stored choice does. */
+(function(){try{
+  var s=localStorage.getItem('ledger-theme');
+  document.documentElement.setAttribute('data-theme',s==='dark'||s==='light'?s:'light');
+}catch(e){document.documentElement.setAttribute('data-theme','light')}})();
+</script>
+<meta name="description" content="An interactive record of every U.S. congressional notification, emergency waiver and munitions transfer involving 2,000-lb class warheads, 2021–2026.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230c0a08'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23e0532c'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,700;0,6..96,900;1,6..96,400&family=Spectral:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --display:'Bodoni Moda',Georgia,serif;
+  --body:'Spectral',Georgia,serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+  --maxw:1280px;
+}
+/* ── INK (dark) ── */
+html[data-theme="dark"]{
+  --ink:#0c0a08;
+  --ink-2:#161311;
+  --panel:#1c1815;
+  --panel-2:#251e19;
+  --bone:#f2ece1;
+  --bone-dim:#cec5b5;   /* lifted from #b5aa98 — 300-weight serif was thinning out on black */
+  --muted:#9d9283;
+  --rule:rgba(236,229,216,.15);
+  --rule-strong:rgba(236,229,216,.3);
+  --sig:#ef6338;
+  --sig-soft:rgba(239,99,56,.15);
+  --amber:#e9ae45;
+  --amber-soft:rgba(233,174,69,.15);
+  --slate:#7fa2b6;
+  --slate-soft:rgba(127,162,182,.15);
+  --ok:#a8bd85;
+  --hero-fade:#0c0a08;
+  --toggle-bg:rgba(20,17,14,.72);
+}
+/* ── PAPER (light) ── */
+html[data-theme="light"]{
+  --ink:#f3eee2;
+  --ink-2:#eae3d3;
+  --panel:#e3dbc8;
+  --panel-2:#dcd3bd;
+  --bone:#1a1613;
+  --bone-dim:#453d34;
+  --muted:#776d5e;
+  --rule:rgba(26,22,19,.16);
+  --rule-strong:rgba(26,22,19,.34);
+  --sig:#b83b13;
+  --sig-soft:rgba(184,59,19,.11);
+  --amber:#8a5d0c;
+  --amber-soft:rgba(138,93,12,.12);
+  --slate:#3a5567;
+  --slate-soft:rgba(58,85,103,.12);
+  --ok:#54702f;
+  --hero-fade:#0c0a08;   /* identical to ink mode: the hero is the same plate in both themes */
+  --toggle-bg:rgba(243,238,226,.8);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--ink);color:var(--bone);
+  /* 400, not 300: a light-weight serif optically thins out against a dark ground */
+  font-family:var(--body);font-weight:400;font-size:17.5px;line-height:1.72;
+  overflow-x:hidden;
+  /* One smoothing mode for both themes. Theme-conditional smoothing thinned the glyphs
+     in ink mode, which was visible on the hero — identical artwork rendering differently. */
+  -webkit-font-smoothing:auto;-moz-osx-font-smoothing:auto;
+  transition:background-color .4s ease,color .4s ease;
+}
+/* Grain sits above the type, so it is kept well below the level that blurs letterforms. */
+body::before{
+  content:'';position:fixed;inset:0;z-index:9990;pointer-events:none;opacity:.12;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  mix-blend-mode:overlay;
+}
+img{max-width:100%;display:block}
+a{color:inherit}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px}
+.mono{font-family:var(--mono);font-weight:400;letter-spacing:.04em}
+.tag{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+
+/* ══ HERO ══ */
+.hero{position:relative;min-height:100svh;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+.hero__img{position:absolute;inset:0}
+.hero__img img{width:100%;height:100%;object-fit:cover;object-position:center 42%;
+  animation:drift 38s ease-in-out infinite alternate;filter:saturate(.82) contrast(1.06)}
+@keyframes drift{from{transform:scale(1.04) translateY(0)}to{transform:scale(1.14) translateY(-2%)}}
+.hero__img::after{content:'';position:absolute;inset:0;
+  background:
+    linear-gradient(to bottom,rgba(12,10,8,.72) 0%,rgba(12,10,8,.28) 32%,rgba(12,10,8,.80) 72%,var(--hero-fade) 100%),
+    radial-gradient(120% 80% at 78% 34%,rgba(224,83,44,.20),transparent 60%);}
+.hero__inner{position:relative;z-index:2;padding-bottom:6vh}
+.hero__kicker{display:flex;align-items:center;gap:18px;margin-bottom:26px}
+/* the kicker sits over the brightest part of the sunset — needs its own contrast floor */
+.hero__kicker span{color:#fff;text-shadow:0 1px 14px rgba(12,10,8,.95),0 0 3px rgba(12,10,8,.9)}
+.hero__kicker .line{flex:1;height:1px;background:rgba(255,255,255,.45);max-width:200px;
+  box-shadow:0 0 10px rgba(12,10,8,.8)}
+h1{
+  font-family:var(--display);font-weight:400;font-style:normal;
+  font-size:clamp(3.2rem,9.2vw,9rem);line-height:.88;letter-spacing:-.025em;margin:0 0 4px;
+  text-wrap:balance;
+}
+h1 em{font-style:italic;color:#ef6338}
+.hero__sub{
+  font-size:clamp(1.05rem,1.55vw,1.32rem);max-width:60ch;
+  margin:30px 0 0;font-weight:400;line-height:1.6;
+}
+/* The hero is a photographic plate in BOTH themes: its type is pinned light and never
+   inherits the paper-mode ink tokens, which would put dark text on a dark photograph. */
+.hero h1,.hero__sub{color:#f4efe4;text-shadow:0 2px 26px rgba(10,8,6,.55)}
+.hero__sub{color:rgba(244,239,228,.88)}
+.hero__caption{
+  position:absolute;right:32px;bottom:calc(6vh + 8px);z-index:3;max-width:250px;text-align:right;
+  font-family:var(--mono);font-size:11px;line-height:1.7;color:rgba(242,236,225,.66);letter-spacing:.02em;
+}
+@media(max-width:900px){.hero__caption{position:static;text-align:left;max-width:none;margin-top:32px}}
+
+/* ══ STAT STRIP ══ */
+.strip{border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:var(--ink-2);position:relative;z-index:3;transition:background-color .4s ease}
+.strip__grid{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat{padding:34px 28px;border-left:1px solid var(--rule)}
+.stat:first-child{border-left:0}
+.stat__n{font-family:var(--display);font-size:clamp(2rem,3.4vw,3.1rem);line-height:1;letter-spacing:-.02em;display:block}
+.stat__n.sig{color:var(--sig)}
+.stat__n.amb{color:var(--amber)}
+.stat__l{margin-top:12px;font-size:13.5px;color:var(--bone-dim);line-height:1.45;max-width:26ch}
+@media(max-width:860px){.strip__grid{grid-template-columns:repeat(2,1fr)}.stat:nth-child(3){border-left:0}.stat:nth-child(n+3){border-top:1px solid var(--rule)}}
+
+/* ══ SECTIONS ══ */
+section{padding:110px 0;position:relative}
+.sec-head{display:flex;align-items:baseline;gap:24px;margin-bottom:14px}
+.sec-head .num{font-family:var(--mono);font-size:12px;color:var(--sig);letter-spacing:.2em}
+h2{font-family:var(--display);font-weight:400;font-size:clamp(2.1rem,4.6vw,3.9rem);line-height:1.02;letter-spacing:-.02em;margin:0}
+h2 em{font-style:italic;color:var(--amber)}
+.lede{font-size:clamp(1.02rem,1.35vw,1.2rem);max-width:68ch;color:var(--bone-dim);margin:22px 0 0}
+.lede strong{color:var(--bone);font-weight:600}
+.rule{height:1px;background:var(--rule);margin:44px 0}
+
+/* ══ CONTROLS ══ */
+.controls{margin:46px 0 0;border:1px solid var(--rule);background:linear-gradient(180deg,var(--panel),var(--ink-2))}
+.controls__row{display:flex;flex-wrap:wrap;gap:10px;padding:20px 22px;border-bottom:1px solid var(--rule);align-items:center}
+.controls__row:last-child{border-bottom:0}
+.ctl-label{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-right:6px;flex:0 0 auto}
+.chip{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;padding:7px 14px;cursor:pointer;
+  background:transparent;color:var(--bone-dim);border:1px solid var(--rule-strong);
+  transition:all .18s ease;white-space:nowrap;
+}
+.chip:hover{color:var(--bone);border-color:var(--bone-dim)}
+.chip[aria-pressed="true"]{background:var(--bone);color:var(--ink);border-color:var(--bone);font-weight:500}
+.chip.sig[aria-pressed="true"]{background:var(--sig);border-color:var(--sig);color:#fff}
+.chip.amb[aria-pressed="true"]{background:var(--amber);border-color:var(--amber);color:var(--ink)}
+.search{
+  flex:1;min-width:220px;background:var(--ink);border:1px solid var(--rule-strong);color:var(--bone);
+  font-family:var(--mono);font-size:12.5px;padding:9px 14px;outline:none;transition:border-color .2s;
+}
+.search:focus{border-color:var(--sig)}
+.search::placeholder{color:var(--muted)}
+
+/* ══ LIVE TOTALS ══ */
+.totals{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);
+  border:1px solid var(--rule);border-top:0;
+}
+.totals>div{background:var(--ink-2);padding:20px 22px}
+.totals__n{font-family:var(--display);font-size:1.85rem;line-height:1;letter-spacing:-.02em;display:block;transition:color .25s}
+.totals__l{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:10px}
+@media(max-width:780px){.totals{grid-template-columns:repeat(2,1fr)}}
+
+/* ══ TABLE ══ */
+.tablewrap{border:1px solid var(--rule);border-top:0;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:960px}
+thead th{
+  font-family:var(--mono);font-size:9.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--muted);text-align:left;padding:16px 18px;border-bottom:1px solid var(--rule-strong);
+  background:var(--ink-2);position:sticky;top:0;z-index:5;white-space:nowrap;
+}
+thead th.sortable{cursor:pointer;user-select:none;transition:color .18s}
+thead th.sortable:hover{color:var(--bone)}
+thead th .arrow{opacity:0;margin-left:6px;transition:opacity .18s}
+thead th[data-active="true"]{color:var(--sig)}
+thead th[data-active="true"] .arrow{opacity:1}
+tbody tr.row{border-bottom:1px solid var(--rule);cursor:pointer;transition:background .16s}
+tbody tr.row:hover{background:var(--panel)}
+tbody tr.row[aria-expanded="true"]{background:var(--panel-2)}
+td{padding:17px 18px;vertical-align:top;font-size:14.5px;line-height:1.45}
+.c-date{font-family:var(--mono);font-size:12.5px;color:var(--bone);white-space:nowrap;letter-spacing:.02em}
+.c-date small{display:block;color:var(--muted);font-size:10px;letter-spacing:.14em;text-transform:uppercase;margin-top:5px}
+.c-val{font-family:var(--display);font-size:1.22rem;white-space:nowrap;letter-spacing:-.01em}
+.c-val.none{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.c-mech{font-family:var(--mono);font-size:11px;color:var(--bone-dim);letter-spacing:.04em;line-height:1.6}
+.c-qty{font-family:var(--mono);font-size:13px;letter-spacing:.01em;white-space:nowrap}
+.c-qty.zero{color:#4e463d}
+.c-gp{color:var(--sig)}
+.c-pen{color:var(--amber)}
+.c-kit{color:var(--slate)}
+.c-desc{color:var(--bone-dim);font-size:14px;max-width:40ch}
+.pill{
+  display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  padding:3px 8px;border:1px solid;margin:0 5px 5px 0;white-space:nowrap;
+}
+.pill--emg{color:var(--sig);border-color:rgba(224,83,44,.45);background:var(--sig-soft)}
+.pill--held{color:var(--amber);border-color:rgba(227,166,60,.45);background:var(--amber-soft)}
+.pill--pend{color:var(--slate);border-color:rgba(109,143,163,.45);background:var(--slate-soft)}
+.pill--del{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent);background:color-mix(in srgb,var(--ok) 13%,transparent)}
+/* detail drawer */
+tr.detail>td{padding:0;border-bottom:1px solid var(--rule)}
+.drawer{max-height:0;overflow:hidden;transition:max-height .42s cubic-bezier(.4,0,.2,1)}
+tr.detail[data-open="true"] .drawer{max-height:900px}
+.drawer__in{padding:30px 34px 34px;background:linear-gradient(180deg,rgba(224,83,44,.05),transparent 40%),var(--ink)}
+.drawer__grid{display:grid;grid-template-columns:1.35fr 1fr;gap:44px}
+@media(max-width:900px){.drawer__grid{grid-template-columns:1fr;gap:26px}}
+.drawer h4{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--sig);margin:0 0 14px;font-weight:500}
+.drawer ul{margin:0;padding:0;list-style:none}
+.drawer li{padding:8px 0 8px 20px;border-bottom:1px solid var(--rule);font-size:14px;position:relative;color:var(--bone-dim)}
+.drawer li::before{content:'';position:absolute;left:0;top:16px;width:8px;height:1px;background:var(--sig)}
+.drawer li:last-child{border-bottom:0}
+.drawer li b{color:var(--bone);font-weight:600;font-family:var(--mono);font-size:13px}
+.meta-row{display:flex;gap:14px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:13.5px}
+.meta-row:last-of-type{border-bottom:0}
+.meta-row dt{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);flex:0 0 108px;padding-top:4px}
+.meta-row dd{margin:0;color:var(--bone-dim)}
+.srclink{display:inline-block;margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  color:var(--sig);text-decoration:none;border-bottom:1px solid rgba(224,83,44,.4);padding-bottom:2px;transition:all .2s}
+.srclink:hover{color:var(--bone);border-color:var(--bone)}
+.empty{padding:70px 24px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px;letter-spacing:.08em}
+
+/* ══ DOT GRID ══ */
+.dots{display:flex;flex-wrap:wrap;gap:7px;margin:40px 0 28px;max-width:960px}
+.dot{width:15px;height:15px;border-radius:50%;position:relative;transition:transform .2s}
+.dot:hover{transform:scale(1.5)}
+.dot--del{background:var(--ok)}
+.dot--app{background:var(--sig)}
+.dot--pend{background:transparent;border:1px solid color-mix(in srgb,var(--slate) 80%,transparent)}
+.legend{display:flex;flex-wrap:wrap;gap:30px;margin-top:34px}
+.legend div{display:flex;align-items:flex-start;gap:11px;font-size:13.5px;color:var(--bone-dim);max-width:30ch}
+.legend .swatch{width:13px;height:13px;border-radius:50%;flex:0 0 auto;margin-top:5px}
+
+/* ══ GAP BARS ══ */
+.gap{margin-top:46px;max-width:880px}
+.gapbar{margin-bottom:30px}
+.gapbar__top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px;gap:16px}
+.gapbar__lab{font-family:var(--mono);font-size:11.5px;letter-spacing:.09em;color:var(--bone-dim)}
+.gapbar__val{font-family:var(--display);font-size:1.5rem;letter-spacing:-.01em}
+.gapbar__track{height:12px;background:var(--panel);border:1px solid var(--rule)}
+.gapbar__fill{height:100%;width:0;transition:width 1.5s cubic-bezier(.22,1,.36,1)}
+
+/* ══ TONNAGE COMPARISON ══ */
+.tons{margin-top:40px;border-top:1px solid var(--rule-strong)}
+.tonrow{display:grid;grid-template-columns:250px 1fr 108px;gap:24px;align-items:center;
+  padding:15px 0;border-bottom:1px solid var(--rule)}
+@media(max-width:820px){
+  .tonrow{grid-template-columns:1fr 92px;gap:10px 16px}
+  .tonrow__track{grid-column:1/3;order:3}
+}
+.tonrow__lab{font-size:14.5px;color:var(--bone);line-height:1.35}
+.tonrow__lab span{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);margin-top:5px}
+.tonrow__track{height:22px;background:var(--panel);border:1px solid var(--rule);position:relative;overflow:hidden}
+.tonrow__fill{height:100%;width:0;transition:width 1.5s cubic-bezier(.22,1,.36,1)}
+.tonrow[data-kind="ledger"] .tonrow__fill{background:linear-gradient(90deg,#8a2f16,var(--sig))}
+.tonrow[data-kind="history"] .tonrow__fill{background:linear-gradient(90deg,#33485a,var(--slate))}
+.tonrow__mult{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--muted);
+  position:absolute;top:50%;transform:translateY(-50%);white-space:nowrap;padding-left:9px}
+.tonrow__val{font-family:var(--display);font-size:1.22rem;text-align:right;white-space:nowrap;letter-spacing:-.01em}
+.tonrow[data-kind="ledger"] .tonrow__val{color:var(--sig)}
+.tonkey{display:flex;gap:26px;flex-wrap:wrap;margin-top:18px;font-family:var(--mono);
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.tonkey i{display:inline-block;width:20px;height:8px;margin-right:8px;vertical-align:middle;font-style:normal}
+.counterweight{
+  margin-top:42px;border:1px solid var(--rule);border-left:2px solid var(--slate);
+  background:var(--ink-2);padding:26px 30px;
+}
+.counterweight h4{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--slate);margin:0 0 14px;font-weight:500}
+.counterweight p{margin:0;font-size:14.5px;color:var(--bone-dim);line-height:1.68;max-width:74ch}
+.counterweight b{color:var(--bone);font-weight:600}
+
+/* ══ FEATURE IMAGES ══ */
+.feature{position:relative;margin:0;padding:0}
+.feature--full{margin:96px 0}
+.feature--full img{width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);height:min(62vh,600px);object-fit:cover;filter:saturate(.8) contrast(1.05)}
+figcaption{font-family:var(--mono);font-size:11.5px;line-height:1.75;color:var(--bone-dim);letter-spacing:.015em;
+  padding-top:14px;max-width:64ch}
+figcaption b{color:var(--bone);font-weight:500}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin:52px 0}
+@media(max-width:800px){.duo{grid-template-columns:1fr}}
+.duo img{height:300px;object-fit:cover;width:100%;filter:saturate(.82)}
+
+/* ══ CARDS ══ */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:1px;background:var(--rule);
+  border:1px solid var(--rule);margin-top:46px}
+.card{background:var(--ink-2);padding:30px 28px}
+.card h3{font-family:var(--display);font-size:1.5rem;font-weight:400;margin:0 0 6px;letter-spacing:-.01em}
+.card .sub{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--sig);margin-bottom:16px}
+.card p{margin:0;font-size:14.5px;color:var(--bone-dim);line-height:1.62}
+
+/* ══ TIMELINE ══ */
+.tl{margin-top:54px;border-left:1px solid var(--rule-strong);padding-left:0}
+.tl__item{position:relative;padding:0 0 42px 40px}
+.tl__item::before{content:'';position:absolute;left:-4.5px;top:7px;width:8px;height:8px;border-radius:50%;
+  background:var(--ink);border:1px solid var(--bone-dim)}
+.tl__item.hot::before{background:var(--sig);border-color:var(--sig);box-shadow:0 0 0 5px rgba(224,83,44,.18)}
+.tl__d{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--sig);margin-bottom:8px}
+.tl__t{font-family:var(--display);font-size:1.32rem;line-height:1.28;margin:0 0 8px;font-weight:400}
+.tl__b{font-size:14.5px;color:var(--bone-dim);max-width:68ch;margin:0}
+
+/* ══ ERRATA ══ */
+.errata{counter-reset:err;margin-top:46px}
+.err{display:grid;grid-template-columns:52px 1fr 1fr;gap:28px;padding:26px 0;border-top:1px solid var(--rule)}
+.err:last-child{border-bottom:1px solid var(--rule)}
+@media(max-width:880px){.err{grid-template-columns:32px 1fr;gap:18px}.err__new{grid-column:2}}
+.err__n{font-family:var(--mono);font-size:11px;color:var(--muted);padding-top:5px}
+.err__n::before{counter-increment:err;content:counter(err,decimal-leading-zero)}
+.err__old .lab,.err__new .lab{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:9px}
+.err__old .lab{color:var(--sig)}
+.err__new .lab{color:#9bb07a}
+.err__old p{margin:0;font-size:14.5px;color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(224,83,44,.55);text-decoration-thickness:1px}
+.err__new p{margin:0;font-size:14.5px;color:var(--bone-dim)}
+.err__new b{color:var(--bone);font-weight:600}
+
+/* ══ SOURCES ══ */
+.srcgrid{columns:2;column-gap:52px;margin-top:38px}
+@media(max-width:800px){.srcgrid{columns:1}}
+.srcgrid a{display:block;break-inside:avoid;padding:11px 0;border-bottom:1px solid var(--rule);
+  font-size:13.5px;color:var(--bone-dim);text-decoration:none;transition:color .18s,padding-left .18s}
+.srcgrid a:hover{color:var(--sig);padding-left:8px}
+.srcgrid a span{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.1em;display:block;margin-top:3px}
+
+footer{border-top:1px solid var(--rule);padding:56px 0 80px;margin-top:40px}
+.foot{display:grid;grid-template-columns:1.5fr 1fr;gap:48px}
+@media(max-width:800px){.foot{grid-template-columns:1fr}}
+.foot p{font-size:13.5px;color:var(--bone-dim);margin:0 0 12px;max-width:60ch;line-height:1.75}
+.foot b{color:var(--bone-dim);font-weight:600}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .85s ease,transform .85s cubic-bezier(.22,1,.36,1)}
+.reveal.in{opacity:1;transform:none}
+::selection{background:var(--sig);color:#fff}
+
+/* ══ E-SERIES SLIDESHOW ══ */
+.show{margin-top:46px;border:1px solid var(--rule);background:var(--ink-2)}
+.show__stage{position:relative;aspect-ratio:3/2;overflow:hidden;background:#070605}
+.show__slide{position:absolute;inset:0;opacity:0;transition:opacity .62s ease;pointer-events:none}
+.show__slide[data-on="true"]{opacity:1;pointer-events:auto}
+.show__slide img,.show__slide video{width:100%;height:100%;object-fit:cover;display:block}
+.show__slide video{object-fit:contain;background:#070605}
+.show__num{
+  position:absolute;top:0;left:0;z-index:4;font-family:var(--mono);font-size:10px;letter-spacing:.2em;
+  padding:9px 14px;background:rgba(7,6,5,.8);color:#f2ece1;backdrop-filter:blur(8px);
+}
+.show__cap{
+  position:absolute;left:0;right:0;bottom:0;z-index:4;padding:44px 26px 20px;
+  background:linear-gradient(to top,rgba(7,6,5,.94),rgba(7,6,5,.72) 48%,transparent);
+  font-family:var(--mono);font-size:12px;line-height:1.65;color:#eee7dc;letter-spacing:.015em;
+}
+@media(max-width:700px){.show__cap{font-size:10.5px;padding:34px 16px 14px}}
+.show__nav{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:46px;height:46px;
+  display:grid;place-items:center;cursor:pointer;border:1px solid rgba(242,236,225,.3);
+  background:rgba(7,6,5,.55);color:#f2ece1;backdrop-filter:blur(8px);transition:all .2s;
+}
+.show__nav:hover{background:var(--sig);border-color:var(--sig);color:#fff}
+.show__nav--p{left:18px}.show__nav--n{right:18px}
+.show__nav svg{width:16px;height:16px}
+.show__bar{display:flex;align-items:center;gap:14px;padding:15px 20px;border-top:1px solid var(--rule);flex-wrap:wrap}
+.show__dots{display:flex;gap:7px;flex:1}
+.show__dot{width:30px;height:3px;background:var(--rule-strong);border:0;padding:0;cursor:pointer;transition:background .25s}
+.show__dot[data-on="true"]{background:var(--sig)}
+.show__dot:hover{background:var(--bone-dim)}
+.show__meta{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+.show__play{
+  font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;
+  background:transparent;border:1px solid var(--rule-strong);color:var(--bone-dim);padding:6px 12px;transition:all .2s;
+}
+.show__play:hover{color:var(--sig);border-color:var(--sig)}
+
+/* ══ A-SERIES FILMSTRIP ══ */
+.strip6{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:44px;
+  width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);padding:0 22px;
+}
+.strip6 figure{margin:0;position:relative;overflow:hidden;cursor:zoom-in;background:var(--ink-2)}
+.strip6 img{width:100%;aspect-ratio:3/2;object-fit:cover;display:block;transition:transform .55s cubic-bezier(.22,1,.36,1),filter .35s;filter:saturate(.92)}
+.strip6 figure:hover img{transform:scale(1.07);filter:saturate(1.05)}
+.strip6 .fnum{
+  position:absolute;top:0;left:0;font-family:var(--mono);font-size:9px;letter-spacing:.18em;
+  padding:5px 9px;background:rgba(7,6,5,.78);color:#f2ece1;z-index:2;
+}
+@media(max-width:1000px){
+  .strip6{grid-template-columns:repeat(6,minmax(180px,1fr));overflow-x:auto;padding-bottom:12px;
+    scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+}
+
+/* ══ LIGHTBOX ══ */
+.lb{
+  position:fixed;inset:0;z-index:10001;display:none;place-items:center;padding:4vh 4vw;
+  background:rgba(6,5,4,.95);backdrop-filter:blur(10px);
+}
+.lb[data-open="true"]{display:grid}
+.lb img{max-width:100%;max-height:82vh;object-fit:contain;box-shadow:0 30px 90px rgba(0,0,0,.6)}
+.lb__cap{
+  position:absolute;left:0;right:0;bottom:0;padding:20px 5vw;text-align:center;
+  font-family:var(--mono);font-size:11.5px;color:rgba(242,236,225,.75);letter-spacing:.02em;line-height:1.7;
+}
+.lb__x{
+  position:absolute;top:22px;right:26px;width:42px;height:42px;display:grid;place-items:center;cursor:pointer;
+  background:transparent;border:1px solid rgba(242,236,225,.3);color:#f2ece1;transition:all .2s;
+}
+.lb__x:hover{background:var(--sig);border-color:var(--sig)}
+
+/* ══ THEME TOGGLE ══ */
+.theme{
+  position:fixed;top:22px;right:26px;z-index:10000;
+  display:flex;align-items:center;gap:9px;cursor:pointer;
+  font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
+  padding:10px 15px;border:1px solid var(--rule-strong);background:var(--toggle-bg);
+  color:var(--bone);backdrop-filter:blur(14px) saturate(1.2);-webkit-backdrop-filter:blur(14px) saturate(1.2);
+  transition:border-color .25s,color .25s,background-color .4s;
+}
+.theme:hover{border-color:var(--sig);color:var(--sig)}
+.theme__ico{width:13px;height:13px;flex:0 0 auto;position:relative}
+.theme__ico svg{position:absolute;inset:0;width:13px;height:13px;transition:opacity .3s,transform .4s}
+html[data-theme="dark"] .theme__ico .i-sun{opacity:1;transform:rotate(0)}
+html[data-theme="dark"] .theme__ico .i-moon{opacity:0;transform:rotate(-70deg)}
+html[data-theme="light"] .theme__ico .i-sun{opacity:0;transform:rotate(70deg)}
+html[data-theme="light"] .theme__ico .i-moon{opacity:1;transform:rotate(0)}
+html[data-theme="dark"] .theme__lbl::after{content:'Paper'}
+html[data-theme="light"] .theme__lbl::after{content:'Ink'}
+@media(max-width:700px){.theme{top:14px;right:14px;padding:9px 12px;font-size:9px}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<button class="theme" id="theme" type="button" aria-label="Switch colour theme">
+  <span class="theme__ico">
+    <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 1.6v2.6M12 19.8v2.6M22.4 12h-2.6M4.2 12H1.6M19.4 4.6l-1.8 1.8M6.4 17.6l-1.8 1.8M19.4 19.4l-1.8-1.8M6.4 6.4L4.6 4.6"/></svg>
+    <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 14.5A8.6 8.6 0 1 1 9.5 3.5a6.9 6.9 0 0 0 11 11z"/></svg>
+  </span>
+  <span class="theme__lbl"></span>
+</button>
+
+<!-- ══════════ HERO ══════════ -->
+<header class="hero">
+  <div class="hero__img">
+    <img src="assets/beirut-strike-dahieh-20240927.jpg" alt="A column of smoke rises over Beirut at sunset following an Israeli airstrike on the city's southern suburbs, 27 September 2024.">
+  </div>
+  <div class="wrap hero__inner">
+    <div class="hero__kicker">
+      <span class="tag">Dossier — Revised 16 Sep 2026</span>
+      <div class="line"></div>
+      <span class="tag">26 Cases · 2021–2026</span>
+    </div>
+    <h1>The&nbsp;Ledger<br>of&nbsp;<em>Two&nbsp;Thousand</em><br>Pounds</h1>
+    <p class="hero__sub">Every U.S. congressional notification, emergency waiver and recorded transfer of heavy munitions to Israel — traced to the primary document, corrected against the public record, and laid open for inspection in an interactive table.</p>
+  </div>
+  <div class="hero__caption">
+    <b>Above:</b> the strike on Beirut's southern suburbs, 27 September 2024. Israeli F-15I aircraft delivered a salvo of 2,000-lb class warheads of the type catalogued below.<br><br>Photo: Jimmyp84 · CC0 · Wikimedia Commons
+  </div>
+</header>
+
+<!-- ══════════ STAT STRIP ══════════ -->
+<div class="strip">
+  <div class="wrap strip__grid">
+    <div class="stat">
+      <span class="stat__n sig" data-count="116329">116,329</span>
+      <div class="stat__l">2,000-lb class warheads delivered, approved or proposed since October 2023</div>
+    </div>
+    <div class="stat">
+      <span class="stat__n">$<span data-count="39.2" data-dec="1">39.2</span>B</span>
+      <div class="stat__l">Active Foreign Military Sales cases with Israel, April 2025</div>
+    </div>
+    <div class="stat">
+      <span class="stat__n amb">$<span data-count="4.2" data-dec="1">4.2</span>B</span>
+      <div class="stat__l">Weapons actually <em>delivered</em> since 7 Oct 2023, as of August 2025</div>
+    </div>
+    <div class="stat">
+      <span class="stat__n" data-count="7">7</span>
+      <div class="stat__l">Emergency waivers used to bypass congressional review</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ 01 · THE DELIVERY ══════════ -->
+<section class="wrap reveal">
+  <div class="sec-head"><span class="num">01</span><h2>The <em>delivery</em></h2></div>
+  <p class="lede">On 22 October 2024 an Associated Press photographer stood in Ghobeiri, in Beirut's southern suburbs, and photographed a 2,000-lb warhead in the eight seconds before it reached an apartment block. <strong>Arms researchers identified the guidance kit strapped to it as a Rafael SPICE — the same kit family sold under the $320 million commercial licence recorded in row three of the ledger below.</strong></p>
+
+  <div class="show" id="show">
+    <div class="show__stage" id="stage">
+      <div class="show__slide" data-cap="The munition appears over the Ghobeiri skyline, tail fins and pop-out wings deployed."><img src="assets/selection/e0.webp" alt="A guided bomb descends above apartment buildings in Ghobeiri, Beirut." loading="lazy"></div>
+      <div class="show__slide" data-cap="Closer. The tail and nose sections are the features researchers used to identify the SPICE kit."><img src="assets/selection/e1.webp" alt="Close view of the guided bomb in flight above a Beirut apartment building." loading="lazy"></div>
+      <div class="show__slide" data-cap="A few metres from the facade. Curtains are still hanging in the open windows."><img src="assets/selection/e2.webp" alt="The bomb moments from impact beside the balconies of a residential block." loading="lazy"></div>
+      <div class="show__slide" data-cap="Detonation. A 2,000-lb warhead against a residential block."><img src="assets/selection/e3.webp" alt="The moment of detonation, debris and dust thrown across the building." loading="lazy"></div>
+      <div class="show__slide" data-cap="Seconds later, from the street below. The building was flattened."><img src="assets/selection/e4.webp" alt="Bystanders in the street as a dust cloud rises over the destroyed building." loading="lazy"></div>
+      <div class="show__slide" data-video="1" data-cap="The same strike, filmed. Nine seconds."><video src="assets/selection/e.mp4" poster="assets/selection/e-poster.jpg" muted playsinline preload="none" controls></video></div>
+      <span class="show__num" id="shownum">01 / 06</span>
+      <div class="show__cap" id="showcap"></div>
+      <button class="show__nav show__nav--p" id="prev" aria-label="Previous frame"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="show__nav show__nav--n" id="next" aria-label="Next frame"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+    <div class="show__bar">
+      <button class="show__play" id="playpause" aria-label="Pause or resume the sequence">Pause</button>
+      <div class="show__dots" id="dotsnav"></div>
+      <span class="show__meta">Ghobeiri, Beirut · 22 Oct 2024 · Bilal Hussein / AP</span>
+    </div>
+  </div>
+
+  <figcaption style="max-width:78ch;padding-top:20px">
+    <b>“I heard the sound of the missile whistling, headed toward the building and then I started filming,”</b> photographer Bilal Hussein said. Hussein had positioned himself after two smaller warning strikes hit the building; the main munition arrived eight minutes later. The Israeli military said the target was a Hezbollah weapons cache and had issued a roughly 40-minute evacuation warning. No deaths or injuries were reported. The weapon was assessed as a 2,000-lb warhead fitted with a Rafael SPICE guidance kit by Richard Weir of Human Rights Watch and Trevor Ball, a former U.S. Army explosive ordnance disposal technician, working from the tail fin and nose sections visible in these frames.<br><br>
+    Photographs and video: Bilal Hussein / Associated Press. Reference: <a href="https://www.abc.net.au/news/2024-10-24/photos-show-israel-smart-spice-bomb-beirut-building-airstrike/104511636" target="_blank" rel="noopener" style="color:var(--sig)">ABC News, 24 October 2024</a>.
+  </figcaption>
+</section>
+
+<!-- ══════════ 02 · ORIENTATION ══════════ -->
+<section class="wrap reveal">
+  <div class="sec-head"><span class="num">02</span><h2>What this record <em>is</em></h2></div>
+  <p class="lede">A congressional notification is an <strong>approval to sell</strong> — not a delivery. The distinction is the single most abused fact in reporting on this subject, and it is the organising principle of everything below. A $20 billion headline can contain no bombs at all; a $2 billion line can contain thirty-five thousand of them.</p>
+
+  <div class="cards">
+    <div class="card"><div class="sub">FMF</div><h3>Foreign Military Financing</h3><p>U.S. grant aid. Israel receives $3.8&nbsp;billion a year under the 2016–2028 memorandum of understanding, which it then spends on American defence articles.</p></div>
+    <div class="card"><div class="sub">FMS</div><h3>Foreign Military Sales</h3><p>Government-to-government sale brokered by the Defense Security Cooperation Agency. Above set thresholds it triggers a 36(b) notification and a 15-day congressional review window.</p></div>
+    <div class="card"><div class="sub">DCS</div><h3>Direct Commercial Sale</h3><p>A contract directly between a U.S. manufacturer and Israel, licensed by the State Department. Far less publicly visible than FMS — and the least documented channel in this file.</p></div>
+    <div class="card"><div class="sub">WRSA-I</div><h3>War Reserve Stockpile</h3><p>U.S.-owned munitions pre-positioned on Israeli soil, which Israel may be authorised to draw from. Drawn down heavily in the opening months of the Gaza war.</p></div>
+    <div class="card"><div class="sub">§36(b)</div><h3>Emergency Waiver</h3><p>The Secretary of State may declare that "an emergency exists" and waive the review period outright. Used for Israel twice in December 2023, three times in February 2025, and twice in 2026.</p></div>
+  </div>
+</section>
+
+<!-- ══════════ 02 · THE TABLE ══════════ -->
+<section class="wrap reveal" id="ledger">
+  <div class="sec-head"><span class="num">03</span><h2>The <em>ledger</em></h2></div>
+  <p class="lede">Twenty-six entries, chronological. <strong>Filter and sort freely — the totals beneath the controls recalculate live against whatever subset you have selected.</strong> Click any row to open the full itemisation, contractor and delivery schedule.</p>
+
+  <div class="controls">
+    <div class="controls__row">
+      <span class="ctl-label">Class</span>
+      <button class="chip sig" data-filter="cat" data-val="gp2000" aria-pressed="false">2,000-lb GP</button>
+      <button class="chip amb" data-filter="cat" data-val="pen2000" aria-pressed="false">2,000-lb Penetrator</button>
+      <button class="chip" data-filter="cat" data-val="mid" aria-pressed="false">1,000-lb</button>
+      <button class="chip" data-filter="cat" data-val="light" aria-pressed="false">500-lb &amp; SDB</button>
+      <button class="chip" data-filter="cat" data-val="kits" aria-pressed="false">Guidance kits &amp; fuzes</button>
+      <button class="chip" data-filter="cat" data-val="other" aria-pressed="false">Non-munitions</button>
+    </div>
+    <div class="controls__row">
+      <span class="ctl-label">Flag</span>
+      <button class="chip sig" data-filter="flag" data-val="emergency" aria-pressed="false">Emergency waiver</button>
+      <button class="chip" data-filter="flag" data-val="delivered" aria-pressed="false">Delivered / transferred</button>
+      <button class="chip" data-filter="flag" data-val="pending" aria-pressed="false">Not yet delivered</button>
+      <span class="ctl-label" style="margin-left:14px">Admin</span>
+      <button class="chip" data-filter="era" data-val="biden" aria-pressed="false">Biden</button>
+      <button class="chip" data-filter="era" data-val="trump" aria-pressed="false">Trump II</button>
+    </div>
+    <div class="controls__row">
+      <input class="search" id="q" type="search" placeholder="Search munition, contractor, transmittal number…" autocomplete="off">
+      <button class="chip" id="reset">Reset all</button>
+    </div>
+  </div>
+
+  <div class="totals">
+    <div><span class="totals__n" id="t-cases">0</span><div class="totals__l">Cases shown</div></div>
+    <div><span class="totals__n" id="t-value">$0</span><div class="totals__l">Combined value</div></div>
+    <div><span class="totals__n sig" id="t-gp" style="color:var(--sig)">0</span><div class="totals__l">2,000-lb GP bodies</div></div>
+    <div><span class="totals__n" id="t-pen" style="color:var(--amber)">0</span><div class="totals__l">2,000-lb penetrators</div></div>
+  </div>
+
+  <div class="tablewrap">
+    <table id="tbl">
+      <thead><tr>
+        <th class="sortable" data-sort="date" data-active="true">Date <span class="arrow">↓</span></th>
+        <th class="sortable" data-sort="value">Value <span class="arrow">↓</span></th>
+        <th>Mechanism</th>
+        <th class="sortable" data-sort="gp">2,000-lb GP <span class="arrow">↓</span></th>
+        <th class="sortable" data-sort="pen">Penetrator <span class="arrow">↓</span></th>
+        <th>Kits</th>
+        <th>Also in this case</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" hidden>No cases match those filters.</div>
+  </div>
+  <p style="font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.03em;margin-top:16px;line-height:1.7;max-width:76ch">
+    † The 1,800 bombs held in May 2024 and released in January 2025 are the same warheads. They are listed as two events but counted once in the running total.
+    Values are estimated totals at notification and frequently differ from final contract value. Rows without a dollar figure are transfers or holds, not sales.
+  </p>
+</section>
+
+<!-- ══════════ FEATURE ══════════ -->
+<figure class="feature feature--full reveal">
+  <img src="assets/iaf-f15i-new-order-04.jpg" alt="An Israeli Air Force F-15I of the 69th Squadron takes off carrying yellow-banded 2,000-lb class bombs.">
+  <div class="wrap"><figcaption><b>The delivery vehicle.</b> An F-15I Ra'am of the Israeli Air Force's 69th Squadron, tail 220, departing with a full load of yellow-banded 2,000-lb class bombs during Operation New Order — the 27 September 2024 strike on Beirut's southern suburbs pictured at the top of this page. Yellow banding denotes a live high-explosive fill. Photo: IDF Spokesperson's Unit · CC BY-SA 3.0 · Wikimedia Commons.</figcaption></div>
+</figure>
+
+<!-- ══════════ 04 · A-SERIES ══════════ -->
+<section class="wrap reveal">
+  <div class="sec-head"><span class="num">04</span><h2>Six <em>frames</em></h2></div>
+  <p class="lede">Three weeks after Ghobeiri, on 15 November 2024, Associated Press photographer Hassan Ammar trained a long lens on an eleven-storey apartment block in Tayouneh and waited. The Israeli military had issued an evacuation warning with a map marking the building. Read left to right: the munition in flight, detonation at the lower floors, collapse. <strong>Every line in the ledger above resolves, eventually, into one of these.</strong></p>
+
+  <div class="strip6">
+    <figure data-lb="assets/selection/a2.webp" data-cap="Frame 1 — the munition in flight, high above the rooftops."><span class="fnum">01</span><img src="assets/selection/a2.webp" alt="A bomb in flight high above apartment towers." loading="lazy"></figure>
+    <figure data-lb="assets/selection/a3.webp" data-cap="Frame 2 — down between the towers, tail fins clearly visible, a few floors above the street."><span class="fnum">02</span><img src="assets/selection/a3.webp" alt="The munition descending between two apartment towers, its tail fins visible." loading="lazy"></figure>
+    <figure data-lb="assets/selection/a4.webp" data-cap="Frame 3 — detonation. The fireball rises past the overpass; a minaret stands at right."><span class="fnum">03</span><img src="assets/selection/a4.webp" alt="A fireball engulfs the building above a highway overpass." loading="lazy"></figure>
+    <figure data-lb="assets/selection/a5.webp" data-cap="Frame 4 — the fireball at full extent against the face of the block."><span class="fnum">04</span><img src="assets/selection/a5.webp" alt="The fireball at its fullest extent against the building facade." loading="lazy"></figure>
+    <figure data-lb="assets/selection/a6.webp" data-cap="Frame 5 — fire gives way to dust as the structure comes down."><span class="fnum">05</span><img src="assets/selection/a6.webp" alt="A dust cloud engulfs the collapsing building, debris in the air." loading="lazy"></figure>
+    <figure data-lb="assets/selection/a7.webp" data-cap="Frame 6 — from the road below, with traffic and bystanders in the foreground."><span class="fnum">06</span><img src="assets/selection/a7.webp" alt="The strike seen from a road, with vehicles and onlookers in the foreground." loading="lazy"></figure>
+  </div>
+
+  <figcaption style="max-width:78ch">
+    Ammar grew up less than a kilometre from this building. He had once considered renting an apartment in it — or in the block next door — because of the view over the pine trees of Horsh Beirut. Hearing the projectile overhead, he already had the camera trained on the building at a high shutter speed. The Israeli army said the block contained Hezbollah facilities. The bomb struck a lower level and turned much of the eleven-storey structure to rubble; there were no immediate reports of casualties.<br><br>
+    Click any frame to enlarge. Photographs: Hassan Ammar / Associated Press. References: <a href="https://news.sky.com/story/pictures-show-moment-israeli-bomb-exploded-at-beirut-apartment-block-13254979" target="_blank" rel="noopener" style="color:var(--sig)">Sky News</a> · <a href="https://www.timesofisrael.com/liveblog_entry/photographer-captures-exact-moment-beirut-building-was-hit-in-israeli-airstrike/" target="_blank" rel="noopener" style="color:var(--sig)">Times of Israel</a> · <a href="https://www.youtube.com/watch?v=NdWQbc45pHM" target="_blank" rel="noopener" style="color:var(--sig)">video record</a>.
+  </figcaption>
+</section>
+
+<!-- ══════════ 05 · SCALE ══════════ -->
+<section class="wrap reveal">
+  <div class="sec-head"><span class="num">05</span><h2>One dot is <em>one thousand</em> warheads</h2></div>
+  <p class="lede">Every 2,000-lb class warhead in the record since October 2023, sorted into the only three states that matter: gone, bought, or merely floated. <strong>The gap between the filled and the hollow dots is the whole argument about what these numbers mean.</strong></p>
+
+  <div class="dots" id="dots"></div>
+
+  <div class="legend">
+    <div><span class="swatch" style="background:var(--ok)"></span><span><b style="color:var(--bone)">≈16,800 transferred.</b> Physically delivered and overwhelmingly expended — the ≥14,000 MK-84s and ~1,000 penetrators reported by U.S. officials in June 2024, plus the 1,800 released from hold in 2025.</span></div>
+    <div><span class="swatch" style="background:var(--sig)"></span><span><b style="color:var(--bone)">39,529 approved.</b> Notified, contracted, largely unbuilt. The February 2025 emergency cases: 35,529 general-purpose bodies and 4,000 I-2000 penetrators, deliveries stated to begin 2026.</span></div>
+    <div><span class="swatch" style="border:1px solid var(--slate)"></span><span><b style="color:var(--bone)">60,000 proposed.</b> The September 2026 package — 40,000 GP bodies and 20,000 penetrators — still at informal notification. Nothing has been signed, built or shipped.</span></div>
+  </div>
+
+  <div class="rule"></div>
+
+  <h3 style="font-family:var(--display);font-weight:400;font-size:1.9rem;margin:0 0 6px;letter-spacing:-.01em">Approvals outrun deliveries — and the gap is widening</h3>
+  <p class="lede" style="margin-top:14px">This is the load-bearing comparison in the entire file. Headline dollar figures describe intent and authorisation. They do not describe materiel in Israeli hands.</p>
+
+  <div class="gap">
+    <div class="gapbar">
+      <div class="gapbar__top"><span class="gapbar__lab">Active FMS cases with Israel · April 2025</span><span class="gapbar__val">$39.2B</span></div>
+      <div class="gapbar__track"><div class="gapbar__fill" data-w="100" style="background:linear-gradient(90deg,#4a4038,#6d8fa3)"></div></div>
+    </div>
+    <div class="gapbar">
+      <div class="gapbar__top"><span class="gapbar__lab">U.S. military aid obligated · Oct 2023 – Sep 2025</span><span class="gapbar__val">$21.7B</span></div>
+      <div class="gapbar__track"><div class="gapbar__fill" data-w="55.4" style="background:linear-gradient(90deg,#6b3b28,var(--amber))"></div></div>
+    </div>
+    <div class="gapbar">
+      <div class="gapbar__top"><span class="gapbar__lab">Weapons physically delivered · to Aug 2025</span><span class="gapbar__val" style="color:var(--sig)">$4.2B</span></div>
+      <div class="gapbar__track"><div class="gapbar__fill" data-w="10.7" style="background:linear-gradient(90deg,#8a2f16,var(--sig))"></div></div>
+    </div>
+    <div class="gapbar">
+      <div class="gapbar__top"><span class="gapbar__lab">…of which bombs and missiles</span><span class="gapbar__val" style="color:var(--sig)">$2.3B</span></div>
+      <div class="gapbar__track"><div class="gapbar__fill" data-w="5.9" style="background:linear-gradient(90deg,#8a2f16,var(--sig))"></div></div>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <h3 style="font-family:var(--display);font-weight:400;font-size:1.9rem;margin:0 0 6px;letter-spacing:-.01em">Measured in tons</h3>
+  <p class="lede" style="margin-top:14px">A 2,000-lb bomb weighs, conveniently, <strong>exactly one short ton</strong>. So the dot grid above converts directly: 116,329 warheads is 116,329 tons of ordnance. Set against the strategic bombing campaigns of the Second World War, that number stops being abstract.</p>
+
+  <div class="tons">
+    <div class="tonrow" data-kind="ledger">
+      <div class="tonrow__lab">The full record<span>Delivered + approved + proposed</span></div>
+      <div class="tonrow__track"><div class="tonrow__fill" data-w="100"></div></div>
+      <div class="tonrow__val">116,329 t</div>
+    </div>
+    <div class="tonrow" data-kind="history">
+      <div class="tonrow__lab">Berlin — the entire war<span>RAF 45,517 t + USAAF 22,090 t · 1940–45</span></div>
+      <div class="tonrow__track"><div class="tonrow__fill" data-w="58.1"></div><span class="tonrow__mult" style="left:58.1%">record = 1.7×</span></div>
+      <div class="tonrow__val">67,607 t</div>
+    </div>
+    <div class="tonrow" data-kind="ledger">
+      <div class="tonrow__lab">Sept 2026 package alone<span>60,000 warheads · not yet notified</span></div>
+      <div class="tonrow__track"><div class="tonrow__fill" data-w="51.6"></div></div>
+      <div class="tonrow__val">60,000 t</div>
+    </div>
+    <div class="tonrow" data-kind="ledger">
+      <div class="tonrow__lab">Feb 2025 approval<span>35,529 GP bodies + 4,000 penetrators</span></div>
+      <div class="tonrow__track"><div class="tonrow__fill" data-w="34"></div></div>
+      <div class="tonrow__val">39,529 t</div>
+    </div>
+    <div class="tonrow" data-kind="ledger">
+      <div class="tonrow__lab">Transferred to date<span>Delivered and largely expended</span></div>
+      <div class="tonrow__track"><div class="tonrow__fill" data-w="14.4"></div></div>
+      <div class="tonrow__val">≈16,800 t</div>
+    </div>
+    <div class="tonrow" data-kind="history">
+      <div class="tonrow__lab">Dresden<span>RAF + USAAF · 13–15 Feb 1945</span></div>
+      <div class="tonrow__track"><div class="tonrow__fill" data-w="3.35"></div><span class="tonrow__mult" style="left:3.35%">record = 30×</span></div>
+      <div class="tonrow__val">3,900 t</div>
+    </div>
+    <div class="tonrow" data-kind="history">
+      <div class="tonrow__lab">Berlin — the largest raid on the city<span>1,329 bombers + 733 fighters · 18 Mar 1945</span></div>
+      <div class="tonrow__track"><div class="tonrow__fill" data-w="2.58"></div><span class="tonrow__mult" style="left:2.58%">record = 39× · Sept 2026 package = 20×</span></div>
+      <div class="tonrow__val">3,000 t</div>
+    </div>
+    <div class="tonrow" data-kind="history">
+      <div class="tonrow__lab">Tokyo — Operation Meetinghouse<span>325 B-29s · 9–10 Mar 1945 · ≈100,000 killed</span></div>
+      <div class="tonrow__track"><div class="tonrow__fill" data-w="1.43"></div><span class="tonrow__mult" style="left:1.43%">record = 70×</span></div>
+      <div class="tonrow__val">1,665 t</div>
+    </div>
+  </div>
+
+  <div class="tonkey">
+    <span><i style="background:linear-gradient(90deg,#8a2f16,var(--sig))"></i>This ledger</span>
+    <span><i style="background:linear-gradient(90deg,#33485a,var(--slate))"></i>Second World War</span>
+  </div>
+
+  <div class="counterweight">
+    <h4>The comparison that cuts the other way</h4>
+    <p>Tonnage comparisons flatter whichever side is making them, so here is the one that does not help this page's framing. Between 1964 and 1973 the United States dropped roughly <b>7,662,000 tons</b> of ordnance on Indochina, and <b>2,150,000 tons</b> across all theatres of the Second World War. Against Vietnam, the entire record on this page — every bomb delivered, approved and proposed since October 2023 — is about <b>1.5%</b>. Against the whole U.S. WWII effort, roughly <b>5%</b>. The modern figures are extraordinary against single cities and single raids. They are not extraordinary against a full-scale industrial air war.</p>
+  </div>
+
+  <figcaption style="max-width:80ch;padding-top:22px">
+    <b>How to read these numbers, and how not to.</b> All figures are gross bomb weight, which is what wartime tonnage records also measure, so the comparison is like for like. But gross weight is not explosive weight — an MK-84's roughly 2,000 lb contains about 945 lb of filler — and tonnage is a poor proxy for destructive effect across eras. A 1945 raid needed thousands of tons because bombing accuracy was measured in hundreds of metres; a single guided weapon today does what a squadron once did. These bars measure <b>mass procured</b>, not damage done. Sources: National WWII Museum and <i>Bombing of Berlin in World War II</i> (Berlin raid and war totals); <i>Bombing of Tokyo</i>, USSBS (Meetinghouse, 1,665 tonnes, 87,793 confirmed dead with credible estimates near 100,000); <i>Bombing of Dresden</i>; <i>List of bombing campaigns of the Vietnam War</i>.
+  </figcaption>
+</section>
+
+<!-- ══════════ 04 · HARDWARE ══════════ -->
+<section class="wrap reveal">
+  <div class="sec-head"><span class="num">06</span><h2>What the <em>designations</em> mean</h2></div>
+  <p class="lede">Nearly every pairing in the DSCA notifications is a bomb body plus the kit that steers it. Read together they tell you not just what was bought, but what it was bought to do.</p>
+
+  <div class="duo">
+    <figure class="feature">
+      <img src="assets/gbu31-mk84-load.jpg" alt="An airman inspects a GBU-31 JDAM and a Mark 84 bomb in an aircraft weapons bay.">
+      <figcaption><b>Mark 84, 2,000 lb.</b> The baseline general-purpose body. Roughly 945 kg of steel and high explosive; a lethal radius measured in hundreds of metres in open ground, and effectively the whole structure when used against a building. Photo: U.S. Air Force · Public domain.</figcaption>
+    </figure>
+    <figure class="feature">
+      <img src="assets/blu-109-f16.jpg" alt="A BLU-109 penetrating warhead mounted beneath an F-16.">
+      <figcaption><b>BLU-109 / I-2000, 2,000 lb.</b> A forged steel penetrator designed to punch through reinforced concrete and detonate inside. This is the class the September 2026 package would supply in unprecedented volume — 20,000 units. Photo: U.S. Air Force · Public domain.</figcaption>
+    </figure>
+  </div>
+
+  <div class="cards">
+    <div class="card"><div class="sub">2,000 lb · General purpose</div><h3>MK-84 &amp; BLU-117</h3><p>Functionally the same airframe. The BLU-117 is the MK-84 loaded with a thermally insensitive explosive fill rather than tritonal. DSCA notifies them interchangeably — "MK-84 <em>or</em> BLU-117 or a combination."</p></div>
+    <div class="card"><div class="sub">2,000 lb · Penetrator</div><h3>BLU-109 &amp; I-2000</h3><p>"I-2000" (Improved 2000-lb) is the warhead family designation; BLU-109 is its principal in-service member. Notified as separate line items, identical in tactical role: bunkers and subterranean facilities.</p></div>
+    <div class="card"><div class="sub">1,000 lb</div><h3>MK-83 &amp; BLU-110A/B</h3><p>The mid-weight class. BLU-110 is again the insensitive-fill variant of the MK-83 — exactly parallel to the MK-84 / BLU-117 relationship one tier up.</p></div>
+    <div class="card"><div class="sub">500 lb &amp; below</div><h3>MK-82, BLU-111, GBU-39</h3><p>The GBU-39 Small Diameter Bomb is 250-lb class with folding wings: four fit where one 2,000-lb bomb would, raising targets-per-sortie and preserving heavy ordnance for hardened aim points.</p></div>
+    <div class="card"><div class="sub">Guidance</div><h3>JDAM · KMU-5xx</h3><p>Strap-on tail and fin kits with GPS/INS guidance. <b>The kit number tells you the warhead:</b> KMU-556 → MK-84. KMU-557 &amp; 558 → BLU-109. KMU-559 → MK-83. KMU-572 → MK-82.</p></div>
+    <div class="card"><div class="sub">Initiation</div><h3>FMU-152A/B fuzes</h3><p>Programmable impact and delay initiators fitted before loading. Fuze volume is a leading indicator of intended expenditure — one February 2025 case carried 17,475 of them.</p></div>
+  </div>
+</section>
+
+<!-- ══════════ FEATURE ══════════ -->
+<figure class="feature feature--full reveal">
+  <img src="assets/iaf-f15i-new-order-06.jpg" alt="A line of Israeli Air Force F-15I aircraft on a taxiway, each loaded with 2,000-lb class bombs.">
+  <div class="wrap"><figcaption><b>Sortie mathematics.</b> Eight F-15I aircraft holding on the taxiway, each carrying multiple 2,000-lb class bombs. A single squadron launch of this size expends on the order of dozens of the warheads catalogued in this ledger. Photo: IDF Spokesperson's Unit · CC BY-SA 3.0 · Wikimedia Commons.</figcaption></div>
+</figure>
+
+<!-- ══════════ 05 · TIMELINE ══════════ -->
+<section class="wrap reveal">
+  <div class="sec-head"><span class="num">07</span><h2>Holds, releases and <em>waivers</em></h2></div>
+  <p class="lede">The policy layer running alongside the ledger: where transfers were stopped, where they were restarted, and where the review process was simply switched off.</p>
+
+  <div class="tl">
+    <div class="tl__item"><div class="tl__d">October 2023</div><h3 class="tl__t">Stocks diverted, stockpile drawn down</h3><p class="tl__b">Artillery shells originally routed to Ukraine are redirected to Israel. WRSA-I stocks are drawn down. Boeing accelerates delivery of up to 1,800 JDAM kits and airlifts roughly 1,000 small diameter bombs under a pre-existing 2021 commercial contract.</p></div>
+    <div class="tl__item hot"><div class="tl__d">9 &amp; 29 December 2023</div><h3 class="tl__t">The first two emergency waivers</h3><p class="tl__b">Secretary Blinken invokes emergency authority twice inside three weeks, bypassing review on more than $250 million in sales — 13,981 tank cartridges, then the fuzes and charges to complete some 14,000 artillery shells.</p></div>
+    <div class="tl__item"><div class="tl__d">May 2024</div><h3 class="tl__t">One shipment held</h3><p class="tl__b">The Biden administration pauses a single shipment — 1,800 two-thousand-pound and 1,700 five-hundred-pound bombs — citing their use in densely populated parts of Gaza ahead of an anticipated Rafah operation. The 500-lb portion is released that July; the heavy portion is not.</p></div>
+    <div class="tl__item"><div class="tl__d">13 August 2024</div><h3 class="tl__t">$20.3 billion, and not one heavy bomb</h3><p class="tl__b">The largest single notification of the period: 50 F-15IA aircraft, tank rounds, mortars, AMRAAM and tactical vehicles. It contains no 2,000-lb munitions whatsoever — a fact routinely lost in coverage of the headline figure.</p></div>
+    <div class="tl__item hot"><div class="tl__d">Late January – February 2025</div><h3 class="tl__t">The hold is lifted</h3><p class="tl__b">The incoming administration releases the 1,800 MK-84s; the shipment arrives in Israel on 15–16 February. Days earlier, $7.4 billion in munitions and Hellfire missiles is notified over objections from the ranking member of the House Foreign Affairs Committee.</p></div>
+    <div class="tl__item hot"><div class="tl__d">28 February 2025</div><h3 class="tl__t">Three cases, one waiver, 35,529 bombs</h3><p class="tl__b">The largest 2,000-lb class approval on record is pushed through on emergency authority alongside 1,000-lb bodies and the D9 bulldozers previously withheld. Senator Sanders files four resolutions of disapproval against $8.56 billion in offensive weaponry. All fail.</p></div>
+    <div class="tl__item hot"><div class="tl__d">28 February 2026</div><h3 class="tl__t">Operation Epic Fury</h3><p class="tl__b">The United States and Israel launch a joint air campaign against Iran — Epic Fury to Washington, Roaring Lion to Jerusalem. More than 1,000 sites struck in the first 24 hours. The campaign runs to 5 May.</p></div>
+    <div class="tl__item hot"><div class="tl__d">6 March 2026</div><h3 class="tl__t">Emergency authority, one week into the war</h3><p class="tl__b">Secretary Rubio waives review for a package of more than 20,000 bombs. Representative Meeks: "an emergency of the Trump administration's own creation." The Senate rejects the resulting disapproval resolutions 40–59 and 36–63 in April.</p></div>
+    <div class="tl__item"><div class="tl__d">15 September 2026</div><h3 class="tl__t">Two numbers, one day</h3><p class="tl__b">The Defense Department Inspector General reports Epic Fury cost $33.4 billion through 29 June — $22.3 billion of it in expended munitions — and warns of "strategic inventory shortfalls." The same day, a $2.8 billion package of 60,000 heavy warheads for Israel surfaces at informal notification.</p></div>
+  </div>
+</section>
+
+<!-- ══════════ 06 · BOTTLENECK ══════════ -->
+<section class="wrap reveal">
+  <div class="sec-head"><span class="num">08</span><h2>The <em>bottleneck</em></h2></div>
+  <p class="lede">The 2026 supply-side constraint is new, and it changes how every figure above should be read. Approval-to-delivery lag is now gated by American industrial capacity, not merely by contract schedules.</p>
+  <div class="cards">
+    <div class="card"><div class="sub">DoD IG · September 2026</div><h3>$22.3B expended</h3><p>Munitions consumed in Operation Epic Fury through 29 June 2026, out of a $33.4 billion total campaign cost. The Inspector General notes the figures were not audited.</p></div>
+    <div class="card"><div class="sub">Named constraints</div><h3>Three chokepoints</h3><p>Solid rocket motor production, availability of high-grade explosives and propellants, and recruitment of skilled manufacturing labour — the IG's own list.</p></div>
+    <div class="card"><div class="sub">Single point of failure</div><h3>Garland, Texas</h3><p>MK-80 series bomb-body production is concentrated at one facility — Repkon USA, the former General Dynamics plant acquired in March 2025 — which is also prime contractor on the March 2026 emergency case.</p></div>
+    <div class="card"><div class="sub">Requested</div><h3>north of $200B</h3><p>What the War Department is seeking from Congress, with stockpile replenishment identified as the hardest component to deliver.</p></div>
+  </div>
+</section>
+
+<!-- ══════════ 07 · ERRATA ══════════ -->
+<section class="wrap reveal">
+  <div class="sec-head"><span class="num">09</span><h2><em>Errata</em></h2></div>
+  <p class="lede">Seven substantive errors were found in the source document during this revision and are recorded here rather than silently overwritten. <strong>Struck text is what the prior version claimed; the right-hand column is what the primary record shows.</strong></p>
+
+  <div class="errata">
+    <div class="err"><div class="err__n"></div>
+      <div class="err__old"><div class="lab">Claimed</div><p>August 2024 · $20.3B package included 35,500+ MK-84 bombs.</p></div>
+      <div class="err__new"><div class="lab">Record</div><p>That package contained <b>no 2,000-lb bombs at all</b> — F-15s, tank rounds, mortars, AMRAAM, vehicles. The 35,529 figure belongs to the <b>28 February 2025 $2.04B case</b>, which the prior version omitted entirely.</p></div></div>
+
+    <div class="err"><div class="err__n"></div>
+      <div class="err__old"><div class="lab">Claimed</div><p>January 2025 · 1,800 MK-84 and ~1,700 BLU-109 penetrators released.</p></div>
+      <div class="err__new"><div class="lab">Record</div><p>The 1,700 were <b>500-lb bombs</b>, not penetrators — and they had already been released in <b>July 2024</b>. Only the 2,000-lb portion remained held into 2025.</p></div></div>
+
+    <div class="err"><div class="err__n"></div>
+      <div class="err__old"><div class="lab">Claimed</div><p>February 2025 · ~$6.67 billion.</p></div>
+      <div class="err__new"><div class="lab">Record</div><p>The February 2025 munitions case was <b>$6.75 billion</b> (Transmittal 24-13, 7 Feb). <b>$6.67 billion is the January 2026</b> Apache-and-vehicles figure — the two appear to have been conflated.</p></div></div>
+
+    <div class="err"><div class="err__n"></div>
+      <div class="err__old"><div class="lab">Claimed</div><p>June 2025 · ~$647M for 3,475 KMU-557 kits for the BLU-109.</p></div>
+      <div class="err__new"><div class="lab">Record</div><p><b>$510 million</b> (Transmittal 25-59), covering <b>3,845 KMU-558B/B</b> and <b>3,280 KMU-572F/B</b>. The 3,475 KMU-557 kits were in the 7 February case.</p></div></div>
+
+    <div class="err"><div class="err__n"></div>
+      <div class="err__old"><div class="lab">Claimed</div><p>November 2023 · ~$680M for thousands of KMU-556 JDAM and SPICE-2000 kits.</p></div>
+      <div class="err__new"><div class="lab">Record</div><p><b>31 October 2023, ~$320 million</b> — a Rafael-to-Rafael-USA direct commercial sale of SPICE gliding bomb assemblies. No KMU-556 kits, and roughly half the stated value.</p></div></div>
+
+    <div class="err"><div class="err__n"></div>
+      <div class="err__old"><div class="lab">Claimed</div><p>2022 – early 2023 · ~$500–700M pre-war replenishment, ~2,500–3,500 MK-84.</p></div>
+      <div class="err__new"><div class="lab">Record</div><p><b>No public source supports this line or these quantities.</b> Replaced with what is documented: the May 2021 Boeing commercial contract, the February 2023 $403M approval, and the $3.8B annual MOU baseline.</p></div></div>
+
+    <div class="err"><div class="err__n"></div>
+      <div class="err__old"><div class="lab">Claimed</div><p>Oct 2023 – Jun 2024 · ~$2.4B via Presidential Drawdown Authority, 3,000+ KMU-556 kits.</p></div>
+      <div class="err__new"><div class="lab">Record</div><p>The ≥14,000 MK-84 figure is sound, but <b>the PDA attribution is not supported</b> — the mechanisms were existing FMS/DCS cases, U.S. stocks, WRSA-I and two emergency cases. The kit figure was <b>up to 1,800</b> accelerated JDAM kits.</p></div></div>
+  </div>
+</section>
+
+<!-- ══════════ 08 · SOURCES ══════════ -->
+<section class="wrap reveal">
+  <div class="sec-head"><span class="num">10</span><h2>Primary <em>record</em></h2></div>
+  <p class="lede">Every quantity and dollar figure in this file traces to one of the following. Notifications are cited via GlobalSecurity's mirror where state.gov blocks automated retrieval.</p>
+  <div class="srcgrid">
+    <a href="https://www.globalsecurity.org/wmd/library/news/israel/2025/02/israel-250207-dsca02.htm" target="_blank" rel="noopener">Israel — Munitions, Guidance Kits, Fuzes and Munitions Support<span>DSCA · 7 Feb 2025 · Transmittal 24-13 · $6.75B</span></a>
+    <a href="https://www.globalsecurity.org/wmd/library/news/israel/2025/02/israel-250228-dsca01.htm" target="_blank" rel="noopener">Israel — Munitions and Munitions Support<span>DSCA · 28 Feb 2025 · $2.04B</span></a>
+    <a href="https://www.globalsecurity.org/wmd/library/news/israel/2025/06/israel-250630-dsca01.htm" target="_blank" rel="noopener">Israel — Munitions Guidance Kits and Munitions Support<span>DSCA · 30 Jun 2025 · Transmittal 25-59 · $510M</span></a>
+    <a href="https://www.globalsecurity.org/wmd/library/news/israel/2026/03/israel-260306-state01.htm" target="_blank" rel="noopener">Israel — Munitions and Munitions Support<span>State/DSCA · 6 Mar 2026 · Transmittal 26-32 · $151.8M</span></a>
+    <a href="https://www.state.gov/releases/bureau-of-political-military-affairs/2026/05/israel-advanced-precision-kill-weapon-system" target="_blank" rel="noopener">Israel — Advanced Precision Kill Weapon System<span>State Department · 1 May 2026 · $992.4M</span></a>
+    <a href="https://www.congress.gov/crs-product/RL33222" target="_blank" rel="noopener">U.S. Foreign Aid to Israel: Overview and Developments since October 7, 2023<span>Congressional Research Service · RL33222</span></a>
+    <a href="https://costsofwar.watson.brown.edu/sites/default/files/2025-10/Hartung_US_Military_Aid_to_Israel_Oct.20.pdf" target="_blank" rel="noopener">U.S. Military Aid and Arms Transfers to Israel, Oct 2023 – Sep 2025<span>Costs of War / Quincy Institute · Hartung</span></a>
+    <a href="https://www.stimson.org/2024/emergency-declaration-for-arms-transfers-to-israel/" target="_blank" rel="noopener">A Primer on the Emergency Declaration for Arms Transfers to Israel<span>Stimson Center</span></a>
+    <a href="https://www.justsecurity.org/91213/the-war-reserve-stockpile-allies-israel-explained-why-congress-should-not-expand-it/" target="_blank" rel="noopener">The War Reserve Stockpile Allies–Israel, Explained<span>Just Security</span></a>
+    <a href="https://www.timesofisrael.com/us-said-planning-2-8-billion-in-munitions-sales-to-israel-including-2000-lb-bombs/" target="_blank" rel="noopener">US said planning $2.8 billion in munitions sales to Israel<span>Reuters / Times of Israel · 15 Sep 2026</span></a>
+    <a href="https://www.timesofisrael.com/us-bypasses-congressional-review-to-approve-munitions-sale-to-israel/" target="_blank" rel="noopener">US bypasses congressional review to approve munitions sale<span>Reuters / Times of Israel · Mar 2026</span></a>
+    <a href="https://www.ynetnews.com/article/bkmojptkzx" target="_blank" rel="noopener">US sells Israel 27,000 bombs made by Turkish-owned firm<span>Ynet · Mar 2026</span></a>
+    <a href="https://www.timesofisrael.com/us-to-fast-track-3-billion-arms-sale-to-israel-including-bombs-and-armored-bulldozers/" target="_blank" rel="noopener">US to fast-track $3 billion arms sale including bombs and bulldozers<span>Times of Israel · Mar 2025</span></a>
+    <a href="https://www.timesofisrael.com/us-approves-20-billion-in-weapons-sales-to-israel-including-50-fighter-jets/" target="_blank" rel="noopener">US approves $20 billion in weapons sales, including 50 fighter jets<span>Times of Israel · Aug 2024</span></a>
+    <a href="https://www.theglobeandmail.com/world/article-us-has-sent-israel-thousands-of-2000-pound-bombs-since-oct-7/" target="_blank" rel="noopener">U.S. has sent Israel thousands of 2,000-pound bombs since Oct. 7<span>Associated Press · Jun 2024</span></a>
+    <a href="https://www.washingtonpost.com/national-security/2024/05/07/biden-delays-weapons-israel-rafah/" target="_blank" rel="noopener">U.S. paused shipments of thousands of bombs to Israel amid Rafah rift<span>Washington Post · May 2024</span></a>
+    <a href="https://www.npr.org/2023/12/09/1218407156/israel-tank-ammunition-sale-gaza-congress-state-department" target="_blank" rel="noopener">State Department approves tank ammunition sale, bypassing Congress<span>NPR · 9 Dec 2023</span></a>
+    <a href="https://www.cbsnews.com/news/us-iran-war-ammunition-munition-shortage-shortfall-spending/" target="_blank" rel="noopener">IG: $22.3B spent on Iran war munitions caused inventory shortfalls<span>CBS News · 15 Sep 2026</span></a>
+    <a href="https://breakingdefense.com/2026/09/iran-war-costs-airplanes-buildings-stockpile-concerns-ig-report/" target="_blank" rel="noopener">Iran war costs, stockpile concerns: DoD IG<span>Breaking Defense · Sep 2026</span></a>
+    <a href="https://rollcall.com/2026/04/15/sanders-effort-to-block-arms-sales-to-israel-falls-short-in-senate/" target="_blank" rel="noopener">Sanders' effort to block arms sales to Israel falls short<span>Roll Call · 15 Apr 2026</span></a>
+    <a href="https://www.bloomberg.com/news/articles/2023-10-18/boeing-accelerates-delivery-of-up-to-1-800-gps-guidance-bomb-kits-to-israel" target="_blank" rel="noopener">Boeing accelerates delivery of up to 1,800 guidance kits<span>Bloomberg · 18 Oct 2023</span></a>
+    <a href="https://www.armyrecognition.com/news/aerospace-news/2026/israel-orders-5-000-boeing-gbu-39-precision-bombs-to-expand-air-force-strike-capacity" target="_blank" rel="noopener">Israel orders 5,000 Boeing GBU-39 precision bombs<span>Army Recognition · 10 Mar 2026</span></a>
+    <a href="https://fxb.harvard.edu/blog/2024/10/10/" target="_blank" rel="noopener">2,000-lb bombs dropped within lethal range of Gaza hospitals<span>Harvard FXB Center · Oct 2024</span></a>
+    <a href="https://www.aljazeera.com/economy/2026/5/3/us-approves-8-6bn-in-arms-sales-to-middle-east-allies" target="_blank" rel="noopener">US approves $8.6bn in arms sales to Middle East allies<span>Al Jazeera · 3 May 2026</span></a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <p><b>On the figures.</b> Congressional notifications are approvals to sell. Quantities in this ledger are what was notified, not what was delivered, except where a row is explicitly marked as transferred. Where reporting and primary notifications diverge, the notification governs. Values are estimated totals at notification and frequently differ from final contract value.</p>
+      <p><b>On what cannot be known.</b> No shipment-by-shipment accounting of expended munitions exists publicly. Neither the Defense Department nor the IDF releases batch-level expenditure data. Once warheads enter Israeli depots they are fungible with existing reserves and domestic production, and no analyst can trace a given detonation to a given case.</p>
+    </div>
+    <div>
+      <p><b>Images.</b> Ghobeiri strike sequence and video, 22 Oct 2024 (section 01) — Bilal Hussein / Associated Press. Tayouneh six-frame sequence, 15 Nov 2024 (section 04) — Hassan Ammar / Associated Press. Both are copyrighted wire photographs reproduced here for reference and are not cleared for redistribution. Beirut, 27 Sep 2024 — Jimmyp84, CC0. Israeli Air Force F-15I aircraft, Operation New Order — IDF Spokesperson's Unit, CC BY-SA 3.0, via Wikimedia Commons. Munitions photographs — U.S. Air Force, public domain.</p>
+    </div>
+  </div>
+</footer>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Enlarged frame">
+  <button class="lb__x" id="lbx" aria-label="Close"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <img id="lbimg" alt="">
+  <div class="lb__cap" id="lbcap"></div>
+</div>
+
+<script>
+/* ═══════════════ DATA ═══════════════ */
+const D=[
+{d:"2021-05-01",dl:"May 2021",dn:"Pre-war baseline",v:735e6,vl:"~$735M",mech:"DCS — Boeing ↔ Israel",era:"pre",cats:["kits","light"],gp:0,pen:0,kits:"JDAM + SDB",desc:"Multi-year commercial contract, State-valued",status:["pend"],
+ items:["<b>JDAM guidance kits</b> — quantity not disclosed","<b>GBU-39/B</b> Small Diameter Bombs"],
+ meta:{Contractor:"The Boeing Company",Delivery:"Multi-year; accelerated after 7 Oct 2023",Note:"The baseline contract whose deliveries were expedited in the opening weeks of the Gaza war."},
+ src:"https://www.bloomberg.com/news/articles/2023-10-18/boeing-accelerates-delivery-of-up-to-1-800-gps-guidance-bomb-kits-to-israel"},
+
+{d:"2023-02-05",dl:"5 Feb 2023",dn:"Pre-war approval",v:403e6,vl:"~$403M",mech:"DCS approval — Rafael",era:"pre",cats:["kits"],gp:0,pen:0,kits:"SPICE family",desc:"Precision guidance kit approval preceding the Oct 2023 tranche",status:["pend"],
+ items:["<b>SPICE</b> precision guidance kit family"],
+ meta:{Contractor:"Rafael Advanced Defense Systems",Note:"Approved but not finalised before 7 October 2023."},
+ src:"https://www.globalsecurity.org/wmd/library/news/israel/2023/israel-231107-sputnik01.htm"},
+
+{d:"2023-10-31",dl:"31 Oct 2023",dn:"Commercial approval",v:320e6,vl:"~$320M",mech:"DCS — Rafael → Rafael USA",era:"biden",cats:["kits"],gp:0,pen:0,kits:"SPICE assemblies",desc:"Gliding bomb assemblies for 1,000-lb and 2,000-lb bodies",status:["pend"],
+ items:["<b>SPICE Family Gliding Bomb Assemblies</b> — electro-optical/GPS kits for 1,000-lb and 2,000-lb bodies"],
+ meta:{Contractor:"Rafael Advanced Defense Systems → Rafael USA (Maryland)",Note:"Notified to Congress by letter dated 31 Oct 2023, which was never posted publicly on congressional or State Department websites."},
+ src:"https://www.globalsecurity.org/wmd/library/news/israel/2023/israel-231107-sputnik01.htm"},
+
+{d:"2023-11-01",dl:"Oct–Nov 2023",dn:"Expedited delivery",v:null,vl:"under 2021 DCS",mech:"DCS — accelerated",era:"biden",cats:["kits","light"],gp:0,pen:0,kits:"up to 1,800",desc:"Boeing accelerates kits; ~1,000 SDBs airlifted",status:["del"],
+ items:["<b>Up to 1,800 JDAM guidance kits</b> — delivery accelerated","<b>~1,000 Small Diameter Bombs</b> — airlifted in the first ~10 days"],
+ meta:{Contractor:"The Boeing Company",Delivery:"Flown from a USAF base on Israeli Air Force transports",Note:"Drawn against the existing May 2021 commercial contract rather than a new case."},
+ src:"https://www.bloomberg.com/news/articles/2023-10-18/boeing-accelerates-delivery-of-up-to-1-800-gps-guidance-bomb-kits-to-israel"},
+
+{d:"2023-12-09",dl:"9 Dec 2023",dn:"Emergency waiver",v:106.5e6,vl:"$106.5M",mech:"FMS — emergency waiver",era:"biden",cats:["other"],gp:0,pen:0,kits:"—",desc:"13,981 × 120mm tank cartridges",status:["emg","del"],
+ items:["<b>13,981</b> × 120mm tank munition cartridges"],
+ meta:{Authority:"AECA §36(b) emergency determination — Secretary Blinken",Delivery:"Immediate",Note:"First use of emergency authority for Israel in the Gaza war; bypassed the 15-day congressional review."},
+ src:"https://www.npr.org/2023/12/09/1218407156/israel-tank-ammunition-sale-gaza-congress-state-department"},
+
+{d:"2023-12-29",dl:"29 Dec 2023",dn:"Emergency waiver",v:147.5e6,vl:"$147.5M",mech:"FMS — emergency waiver",era:"biden",cats:["other"],gp:0,pen:0,kits:"—",desc:"Fuzes, charges and primers for ~14,000 × 155mm shells",status:["emg","del"],
+ items:["<b>Fuzes, charges and primers</b> to complete approximately 14,000 × 155mm artillery shells"],
+ meta:{Authority:"AECA §36(b) emergency determination — Secretary Blinken",Note:"Second emergency waiver inside three weeks; together the two cases covered over $250M."},
+ src:"https://www.npr.org/2023/12/09/1218407156/israel-tank-ammunition-sale-gaza-congress-state-department"},
+
+{d:"2024-04-24",dl:"24 Apr 2024",dn:"Appropriation",v:14.1e9,vl:"~$14.1B",mech:"Supplemental — P.L. 118-50",era:"biden",cats:["other"],gp:0,pen:0,kits:"—",desc:"Israel share of a $26.4B supplemental",status:["pend"],
+ items:["<b>~$5.2B</b> missile defence (Iron Dome, David's Sling, Iron Beam)","<b>~$4.4B</b> replenishment of U.S. stocks and WRSA-I articles provided","<b>~$3.5B</b> Foreign Military Financing for FMS procurement"],
+ meta:{Mechanism:"Appropriation, not a munitions case",Note:"Funds procurement broadly; does not itself authorise a specific munition."},
+ src:"https://www.congress.gov/crs-product/RL33222"},
+
+{d:"2024-06-29",dl:"Oct 23 – Jun 24",dn:"Cumulative transfers",v:null,vl:"not itemised",mech:"U.S. stocks · WRSA-I · existing cases",era:"biden",cats:["gp2000","pen2000","light"],gp:14000,pen:1000,kits:"—",desc:"Reported by U.S. officials, June 2024",status:["del"],
+ items:["<b>≥14,000</b> MK-84 2,000-lb bombs","<b>~1,000</b> bunker-buster penetrators","<b>6,500</b> × 500-lb bombs","<b>3,000</b> AGM-114 Hellfire missiles","<b>2,600</b> air-dropped Small Diameter Bombs"],
+ meta:{Source:"U.S. officials speaking on condition of anonymity, reported June 2024",Status:"Transferred and overwhelmingly expended",Note:"The single largest documented movement of 2,000-lb class munitions in the period. Not a notification — a retrospective accounting."},
+ src:"https://www.theglobeandmail.com/world/article-us-has-sent-israel-thousands-of-2000-pound-bombs-since-oct-7/"},
+
+{d:"2024-05-07",dl:"May 2024",dn:"Shipment held",v:null,vl:"—",mech:"Delivery hold",era:"biden",cats:["gp2000","light"],gp:1800,pen:0,nosum:true,kits:"—",desc:"1,800 × 2,000-lb and 1,700 × 500-lb withheld",status:["held"],
+ items:["<b>1,800</b> × 2,000-lb bombs — held","<b>1,700</b> × 500-lb bombs — held, then released July 2024"],
+ meta:{Rationale:"Concern over use in densely populated parts of Gaza ahead of an anticipated Rafah operation",Resolution:"500-lb portion released July 2024; 2,000-lb portion released late January 2025",Note:"The only instance in the period of a completed shipment being stopped."},
+ src:"https://www.washingtonpost.com/national-security/2024/05/07/biden-delays-weapons-israel-rafah/"},
+
+{d:"2024-08-13",dl:"13 Aug 2024",dn:"Multi-case notification",v:20.3e9,vl:"~$20.3B",mech:"FMS — multi-case",era:"biden",cats:["other"],gp:0,pen:0,kits:"—",desc:"F-15s, tank rounds, mortars, AMRAAM, vehicles",status:["pend"],
+ items:["<b>50</b> F-15IA aircraft + upgrade of <b>25</b> F-15I — $18.82B","<b>32,739</b> × 120mm tank cartridges — $774.1M","<b>50,000</b> × 120mm HE mortar rounds — $61.1M","<b>30</b> AMRAAM — $102.5M","<b>M1148A1P2 FMTV</b> tactical vehicles — $583.1M"],
+ meta:{Delivery:"F-15 deliveries run into the 2030s; tank rounds from 2027; mortars from 2026",Warning:"Contains NO 2,000-lb munitions. Frequently misreported as a bomb package."},
+ src:"https://www.timesofisrael.com/us-approves-20-billion-in-weapons-sales-to-israel-including-50-fighter-jets/"},
+
+{d:"2025-01-03",dl:"3–4 Jan 2025",dn:"Notification",v:8e9,vl:"~$8B",mech:"FMS notification",era:"biden",cats:["pen2000","light","kits"],gp:0,pen:null,kits:"JDAM tail kits",desc:"Final Biden-administration package",status:["pend"],
+ items:["<b>AIM-120C-8</b> AMRAAM","<b>155mm</b> artillery shells","<b>AGM-114</b> Hellfire missiles","<b>Small Diameter Bombs</b>","<b>JDAM</b> tail kits","<b>500-lb</b> warheads","<b>BLU-109</b> bunker busters","<b>Bomb fuzes</b>"],
+ meta:{Delivery:"Some from current U.S. stocks; the majority a year or several years out",Note:"Quantities were not itemised in the notification as reported. Penetrator count unknown."},
+ src:"https://axios.com/2025/01/04/biden-arms-deal-israel-8-billion"},
+
+{d:"2025-01-25",dl:"Late Jan 2025",dn:"Hold lifted",v:null,vl:"re-release",mech:"Existing case",era:"trump",cats:["gp2000"],gp:1800,pen:0,kits:"—",desc:"The May 2024 hold is released; arrives 15–16 Feb",status:["del"],
+ items:["<b>1,800</b> MK-84 2,000-lb bombs — released from hold"],
+ meta:{Delivery:"Arrived in Israel 15–16 February 2025, confirmed by the Israeli defence ministry",Note:"Delivered during the Gaza ceasefire that came into force 19 January 2025."},
+ src:"https://www.timesofisrael.com/us-shipment-of-heavy-bombs-held-up-by-biden-administration-arrives-in-israel/"},
+
+{d:"2025-02-07",dl:"7 Feb 2025",dn:"Transmittal 24-13",v:6.75e9,vl:"$6.75B",mech:"FMS",era:"trump",cats:["kits","light"],gp:0,pen:0,kits:"17,479 total",desc:"The largest guidance-kit and fuze case of the period",status:["pend"],
+ items:["<b>2,166</b> GBU-39/B Small Diameter Bombs Inc. 1","<b>2,800</b> MK-82 500-lb bomb bodies","<b>13,000</b> KMU-556 JDAM kits — for MK-84","<b>3,475</b> KMU-557 JDAM kits — for BLU-109","<b>1,004</b> KMU-572 JDAM kits — for GBU-38","<b>17,475</b> FMU-152A/B fuzes","FMU-139 fuzes; bomb components; munitions support"],
+ meta:{Contractor:"Boeing (St. Louis); ATK Tactical Systems; L3Harris Fuzing &amp; Ordnance; McAlester AAP",Delivery:"Estimated to begin 2025",Note:"Announced jointly with the $660M Hellfire case for a combined $7.4B headline."},
+ src:"https://www.globalsecurity.org/wmd/library/news/israel/2025/02/israel-250207-dsca02.htm"},
+
+{d:"2025-02-07",dl:"7 Feb 2025",dn:"Notification",v:660e6,vl:"$660M",mech:"FMS",era:"trump",cats:["other"],gp:0,pen:0,kits:"—",desc:"3,000 AGM-114 Hellfire missiles",status:["pend"],
+ items:["<b>3,000</b> AGM-114 Hellfire missiles"],
+ meta:{Contractor:"Lockheed Martin",Note:"The second half of the $7.4B announcement of 7 February 2025."},
+ src:"https://www.globalsecurity.org/wmd/library/news/israel/2025/02/israel-250208-irna01.htm"},
+
+{d:"2025-02-28",dl:"28 Feb 2025",dn:"Emergency waiver",v:2.04e9,vl:"$2.04B",mech:"FMS — emergency waiver",era:"trump",cats:["gp2000","pen2000"],gp:35529,pen:4000,kits:"—",desc:"The largest 2,000-lb class approval on record",status:["emg","pend"],
+ items:["<b>35,529</b> MK-84 <em>or</em> BLU-117 general purpose 2,000-lb bomb bodies, or a combination","<b>4,000</b> I-2000 Penetrator warheads","Spare parts, consumables, repair and return support, transportation, technical services"],
+ meta:{Contractor:"General Dynamics (Garland, TX); Ellwood National Forge (Irvine, PA); McAlester AAP",Delivery:"Estimated to begin 2026; a portion possibly from existing U.S. stock",Authority:"AECA §36(b) emergency determination — Secretary Rubio",Note:"Target of Sanders resolution S.J.Res.33, which failed."},
+ src:"https://www.globalsecurity.org/wmd/library/news/israel/2025/02/israel-250228-dsca01.htm"},
+
+{d:"2025-02-28",dl:"28 Feb 2025",dn:"Emergency waiver",v:675.7e6,vl:"$675.7M",mech:"FMS — emergency waiver",era:"trump",cats:["mid","kits"],gp:0,pen:0,kits:"5,000",desc:"1,000-lb bodies and MK-83 guidance kits",status:["emg","pend"],
+ items:["<b>201</b> MK-83 MOD 4/MOD 5 general purpose 1,000-lb bomb bodies","<b>4,799</b> BLU-110A/B general purpose 1,000-lb bomb bodies","<b>1,500</b> KMU-559C/B JDAM guidance kits","<b>3,500</b> KMU-559J/B JDAM guidance kits"],
+ meta:{Delivery:"Expected 2028",Authority:"AECA §36(b) emergency determination",Note:"Part of the ~$3B three-case tranche of 28 February 2025."},
+ src:"https://www.timesofisrael.com/us-to-fast-track-3-billion-arms-sale-to-israel-including-bombs-and-armored-bulldozers/"},
+
+{d:"2025-02-28",dl:"28 Feb 2025",dn:"Emergency waiver",v:295e6,vl:"$295M",mech:"FMS — emergency waiver",era:"trump",cats:["other"],gp:0,pen:0,kits:"—",desc:"D9R/D9T armoured bulldozers",status:["emg","pend"],
+ items:["<b>D9R and D9T</b> Caterpillar armoured bulldozers and related equipment"],
+ meta:{Delivery:"Beginning 2027",Note:"Previously withheld by the Biden administration over concerns the vehicles were used to raze homes in Gaza. Target of a Sanders resolution rejected 40–59 in April 2026."},
+ src:"https://www.timesofisrael.com/us-to-fast-track-3-billion-arms-sale-to-israel-including-bombs-and-armored-bulldozers/"},
+
+{d:"2025-04-14",dl:"Apr 2025",dn:"Notification",v:180e6,vl:"~$180M",mech:"FMS",era:"trump",cats:["other"],gp:0,pen:0,kits:"—",desc:"Armoured personnel carrier power packs",status:["pend"],
+ items:["<b>Power pack engines</b> for armoured personnel carriers"],
+ meta:{Note:"Non-munitions sustainment case."},
+ src:"https://costsofwar.watson.brown.edu/sites/default/files/2025-10/Hartung_US_Military_Aid_to_Israel_Oct.20.pdf"},
+
+{d:"2025-06-30",dl:"30 Jun 2025",dn:"Transmittal 25-59",v:510e6,vl:"$510M",mech:"FMS",era:"trump",cats:["kits"],gp:0,pen:0,kits:"7,125",desc:"JDAM kits for BLU-109 and MK-82",status:["pend"],
+ items:["<b>3,845</b> KMU-558B/B JDAM guidance kits — for the BLU-109 bomb body","<b>3,280</b> KMU-572 F/B JDAM guidance kits — for the MK-82 bomb body","U.S. government and contractor engineering, logistics and technical support"],
+ meta:{Contractor:"The Boeing Company (St. Charles, MO)",Delivery:"Part of the requirement may transfer from U.S. government stock",Note:"Final cost may fall below the $510M estimate depending on signed requirements."},
+ src:"https://www.globalsecurity.org/wmd/library/news/israel/2025/06/israel-250630-dsca01.htm"},
+
+{d:"2026-01-30",dl:"30 Jan 2026",dn:"Four cases",v:6.67e9,vl:"~$6.67B",mech:"FMS — multi-case",era:"trump",cats:["other"],gp:0,pen:0,kits:"—",desc:"Apaches, vehicles, power packs, helicopters",status:["pend"],
+ items:["<b>30</b> AH-64E Apache attack helicopters — $3.8B","<b>3,250</b> light tactical vehicles — $1.98B","<b>Armoured personnel carrier power packs</b> — $740M","<b>Light utility helicopters</b> — $150M"],
+ meta:{Note:"Contains no heavy munitions. Approved the same day as a Saudi Patriot case and one month before Operation Epic Fury. Criticised by Rep. Meeks for ignoring congressional prerogatives."},
+ src:"https://www.military.com/daily-news/2026/01/31/us-approves-major-new-arms-sales-israel-worth-667-billion-and-saudi-arabia-worth-9-billion.html"},
+
+{d:"2026-03-06",dl:"6 Mar 2026",dn:"Transmittal 26-32",v:151.8e6,vl:"$151.8M",mech:"FMS — emergency waiver",era:"trump",cats:["mid"],gp:0,pen:0,kits:"—",desc:"12,000 × 1,000-lb bomb bodies",status:["emg","pend"],
+ items:["<b>12,000</b> BLU-110A/B general purpose 1,000-lb bomb bodies","U.S. government and contractor engineering, logistics and technical support services"],
+ meta:{Contractor:"Repkon USA (Garland, TX) — the former General Dynamics plant, acquired March 2025",Funding:"Drawn from Israel's $3.8B annual FMF allocation",Authority:"AECA §36(b) emergency determination — Secretary Rubio, one week into Operation Epic Fury",Note:"Target of a Sanders resolution rejected 36–63 in April 2026. Part of the requirement to come from existing inventory."},
+ src:"https://www.globalsecurity.org/wmd/library/news/israel/2026/03/israel-260306-state01.htm"},
+
+{d:"2026-03-08",dl:"6–8 Mar 2026",dn:"Emergency tranche",v:948e6,vl:"~$650M + $298M",mech:"FMS + DCS — emergency waiver",era:"trump",cats:["mid","light"],gp:0,pen:0,kits:"—",desc:"Aggregate reported at >20,000, up to ~27,000 bombs",status:["emg","pend"],
+ items:["<b>12,000</b> BLU-110A/B 1,000-lb bodies (the case above)","<b>~10,000</b> BLU-111 500-lb bodies — amendment to an existing case","<b>5,000</b> small diameter bombs","<b>~$298M</b> in additional munitions via direct commercial sale"],
+ meta:{Contractor:"Repkon USA (Garland, TX)",Authority:"AECA §36(b) emergency determination — Secretary Rubio",Note:"Aggregate view of the March 2026 emergency package. The commercial component was reported but never itemised publicly."},
+ src:"https://www.ynetnews.com/article/bkmojptkzx"},
+
+{d:"2026-03-10",dl:"10 Mar 2026",dn:"Contract award",v:289e6,vl:"$289M",mech:"FMS contract",era:"trump",cats:["light"],gp:0,pen:0,kits:"—",desc:"Up to 5,000 GBU-39/B Small Diameter Bombs",status:["pend"],
+ items:["<b>Up to 5,000</b> GBU-39/B Small Diameter Bombs"],
+ meta:{Contractor:"The Boeing Company",Delivery:"36 months from contract — approximately 2029",Note:"Characterised as a replenishment and force-sustainment buy rather than a crisis-response package; separate from the emergency tranche."},
+ src:"https://www.armyrecognition.com/news/aerospace-news/2026/israel-orders-5-000-boeing-gbu-39-precision-bombs-to-expand-air-force-strike-capacity"},
+
+{d:"2026-04-15",dl:"Apr 2026",dn:"Deliveries",v:null,vl:"—",mech:"Sealift and airlift",era:"trump",cats:["other"],gp:0,pen:0,kits:"—",desc:"~6,500 tons of U.S. materiel arrives in Israel",status:["del"],
+ items:["<b>~6,500 tons</b> of military equipment — thousands of munitions and light armoured utility vehicles","Two cargo ships and several aircraft"],
+ meta:{Note:"Bulk tonnage figure; no itemisation released. Arrived during the closing weeks of Operation Epic Fury."},
+ src:"https://costsofwar.watson.brown.edu/sites/default/files/2025-10/Hartung_US_Military_Aid_to_Israel_Oct.20.pdf"},
+
+{d:"2026-05-01",dl:"1 May 2026",dn:"Emergency waiver",v:992.4e6,vl:"$992.4M",mech:"FMS — emergency waiver",era:"trump",cats:["other"],gp:0,pen:0,kits:"—",desc:"10,000 APKWS-II laser-guided rockets",status:["emg","pend"],
+ items:["<b>10,000</b> APKWS-II All Up Rounds"],
+ meta:{Contractor:"BAE Systems (Nashua, NH)",Authority:"AECA §36(b) emergency determination — Secretary Rubio",Note:"Part of an $8.6B same-day Middle East tranche alongside Qatar (~$5B), Kuwait ($2.5B) and the UAE ($148M). Oriented to low-cost drone interception, not strike."},
+ src:"https://www.state.gov/releases/bureau-of-political-military-affairs/2026/05/israel-advanced-precision-kill-weapon-system"},
+
+{d:"2026-09-15",dl:"15 Sep 2026",dn:"Informal notification",v:2.8e9,vl:"~$2.8B",mech:"FMF grant aid / FMS",era:"trump",cats:["gp2000","pen2000"],gp:40000,pen:20000,kits:"—",desc:"60,000 heavy warheads — pending",status:["pend"],
+ items:["<b>20,000</b> MK-84 2,000-lb bomb bodies","<b>20,000</b> BLU-117 2,000-lb bomb bodies","<b>20,000</b> I-2000 Penetrator warheads"],
+ meta:{Stage:"Informally communicated to the Senate Foreign Relations and House Foreign Affairs committees — NOT formally notified",Funding:"Foreign Military Financing grant aid",Delivery:"None. No contract, no production, no shipment.",Note:"Would be the largest penetrator approval on record by a factor of five. White House: 'all foreign arms sales are moving through the appropriate process. We do not comment on pending sales.'"},
+ src:"https://www.timesofisrael.com/us-said-planning-2-8-billion-in-munitions-sales-to-israel-including-2000-lb-bombs/"}
+];
+
+/* ═══════════════ STATE ═══════════════ */
+const F={cat:new Set(),flag:new Set(),era:new Set()};
+let sortKey="date",sortDir=1,q="";
+
+const fmtV=n=>{if(n==null)return null;if(n>=1e9)return "$"+(n/1e9).toFixed(n/1e9>=10?1:2).replace(/\.0+$/,"")+"B";if(n>=1e6)return "$"+Math.round(n/1e6)+"M";return "$"+n.toLocaleString()};
+const fmtN=n=>n==null?"—":n.toLocaleString();
+
+function matches(r){
+  if(F.cat.size && ![...F.cat].some(c=>r.cats.includes(c))) return false;
+  if(F.era.size && !F.era.has(r.era)) return false;
+  if(F.flag.size){
+    const ok=[...F.flag].some(f=>{
+      if(f==="emergency")return r.status.includes("emg");
+      if(f==="delivered")return r.status.includes("del");
+      if(f==="pending")return r.status.includes("pend")||r.status.includes("held");
+      return false});
+    if(!ok)return false;
+  }
+  if(q){
+    const hay=(r.dl+" "+r.dn+" "+r.mech+" "+r.desc+" "+r.vl+" "+r.items.join(" ")+" "+Object.values(r.meta).join(" ")).toLowerCase();
+    if(!hay.includes(q))return false;
+  }
+  return true;
+}
+
+function render(){
+  const rows=D.filter(matches).sort((a,b)=>{
+    let x,y;
+    if(sortKey==="date"){x=a.d;y=b.d;return x<y?-sortDir:x>y?sortDir:0}
+    if(sortKey==="value"){x=a.v??-1;y=b.v??-1}
+    if(sortKey==="gp"){x=a.gp??-1;y=b.gp??-1}
+    if(sortKey==="pen"){x=a.pen??-1;y=b.pen??-1}
+    return (x-y)*sortDir;
+  });
+
+  const tb=document.getElementById("tbody");
+  tb.innerHTML="";
+  rows.forEach((r,i)=>{
+    const pills=r.status.map(s=>{
+      const m={emg:["pill--emg","Emergency waiver"],held:["pill--held","Held"],pend:["pill--pend","Not delivered"],del:["pill--del","Transferred"]}[s];
+      return m?`<span class="pill ${m[0]}">${m[1]}</span>`:"";
+    }).join("");
+
+    const tr=document.createElement("tr");
+    tr.className="row";tr.setAttribute("aria-expanded","false");tr.dataset.i=i;
+    tr.innerHTML=`
+      <td class="c-date">${r.dl}<small>${r.dn}</small></td>
+      <td class="${r.v==null?"c-val none":"c-val"}">${r.v==null?r.vl:fmtV(r.v)}</td>
+      <td class="c-mech">${r.mech}</td>
+      <td class="c-qty ${r.gp?"c-gp":"zero"}">${r.gp?fmtN(r.gp)+(r.nosum?"<span style='color:var(--muted)' title='Same warheads as the January 2025 release — excluded from the running total to avoid double-counting'>&nbsp;†</span>":""):"—"}</td>
+      <td class="c-qty ${r.pen?"c-pen":"zero"}">${r.pen?fmtN(r.pen):r.pen===null?"<span style='color:var(--amber)'>incl.</span>":"—"}</td>
+      <td class="c-qty ${r.kits!=="—"?"c-kit":"zero"}">${r.kits}</td>
+      <td class="c-desc">${r.desc}<div style="margin-top:9px">${pills}</div></td>`;
+
+    const dr=document.createElement("tr");
+    dr.className="detail";dr.dataset.open="false";
+    dr.innerHTML=`<td colspan="7"><div class="drawer"><div class="drawer__in"><div class="drawer__grid">
+      <div><h4>Itemisation as notified</h4><ul>${r.items.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+      <div><h4>Case detail</h4><dl style="margin:0">${Object.entries(r.meta).map(([k,v])=>`<div class="meta-row"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
+      <a class="srclink" href="${r.src}" target="_blank" rel="noopener">View source document ↗</a></div>
+    </div></div></div></td>`;
+
+    tr.addEventListener("click",()=>{
+      const open=dr.dataset.open==="true";
+      dr.dataset.open=open?"false":"true";
+      tr.setAttribute("aria-expanded",open?"false":"true");
+    });
+
+    tb.appendChild(tr);tb.appendChild(dr);
+  });
+
+  document.getElementById("empty").hidden=rows.length>0;
+
+  // rows flagged nosum describe warheads already counted in another row
+  // (the May 2024 hold and the Jan 2025 release are the same 1,800 bombs)
+  const val=rows.reduce((s,r)=>s+(r.v||0),0);
+  const gp=rows.reduce((s,r)=>s+(r.nosum?0:r.gp||0),0);
+  const pen=rows.reduce((s,r)=>s+(r.nosum?0:r.pen||0),0);
+  document.getElementById("t-cases").textContent=rows.length;
+  document.getElementById("t-value").textContent=val?fmtV(val):"—";
+  document.getElementById("t-gp").textContent=gp.toLocaleString();
+  document.getElementById("t-pen").textContent=pen.toLocaleString();
+
+  document.querySelectorAll("thead th.sortable").forEach(th=>{
+    const on=th.dataset.sort===sortKey;
+    th.dataset.active=on?"true":"false";
+    th.querySelector(".arrow").textContent=sortDir>0?"↑":"↓";
+  });
+}
+
+document.querySelectorAll(".chip[data-filter]").forEach(b=>{
+  b.addEventListener("click",()=>{
+    const g=F[b.dataset.filter],v=b.dataset.val;
+    if(g.has(v)){g.delete(v);b.setAttribute("aria-pressed","false")}
+    else{g.add(v);b.setAttribute("aria-pressed","true")}
+    render();
+  });
+});
+document.getElementById("q").addEventListener("input",e=>{q=e.target.value.trim().toLowerCase();render()});
+document.getElementById("reset").addEventListener("click",()=>{
+  Object.values(F).forEach(s=>s.clear());
+  document.querySelectorAll(".chip[data-filter]").forEach(b=>b.setAttribute("aria-pressed","false"));
+  document.getElementById("q").value="";q="";sortKey="date";sortDir=1;render();
+});
+document.querySelectorAll("thead th.sortable").forEach(th=>{
+  th.addEventListener("click",()=>{
+    const k=th.dataset.sort;
+    if(sortKey===k)sortDir*=-1; else{sortKey=k;sortDir=k==="date"?1:-1}
+    render();
+  });
+});
+render();
+
+/* ═══════════════ DOT GRID ═══════════════ */
+(function(){
+  const host=document.getElementById("dots");
+  const mk=(cls,label)=>{const d=document.createElement("div");d.className="dot "+cls;d.title=label;host.appendChild(d)};
+  for(let i=0;i<17;i++)mk("dot--del","Transferred — ≈16,800 warheads delivered and expended");
+  for(let i=0;i<40;i++)mk("dot--app","Approved 28 Feb 2025 — 39,529 warheads, deliveries stated from 2026");
+  for(let i=0;i<60;i++)mk("dot--pend","Proposed 15 Sep 2026 — 60,000 warheads, informal notification only");
+})();
+
+/* ═══════════════ E-SERIES SLIDESHOW ═══════════════ */
+(function(){
+  const stage=document.getElementById('stage');
+  if(!stage)return;
+  const slides=[...stage.querySelectorAll('.show__slide')];
+  const capEl=document.getElementById('showcap'),numEl=document.getElementById('shownum');
+  const dotsNav=document.getElementById('dotsnav'),pp=document.getElementById('playpause');
+  const STILL_MS=4200;
+  let i=0,timer=null,paused=false;
+
+  slides.forEach((s,n)=>{
+    const b=document.createElement('button');
+    b.className='show__dot';b.type='button';
+    b.setAttribute('aria-label','Frame '+(n+1));
+    b.addEventListener('click',()=>{go(n);restart()});
+    dotsNav.appendChild(b);
+  });
+  const dots=[...dotsNav.children];
+
+  function go(n){
+    const prevVid=slides[i].querySelector('video');
+    if(prevVid){prevVid.pause();prevVid.currentTime=0}
+    i=(n+slides.length)%slides.length;
+    slides.forEach((s,k)=>s.dataset.on=k===i?'true':'false');
+    dots.forEach((d,k)=>d.dataset.on=k===i?'true':'false');
+    capEl.textContent=slides[i].dataset.cap||'';
+    numEl.textContent=String(i+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+  }
+  function schedule(){
+    clearTimeout(timer);
+    if(paused)return;
+    const vid=slides[i].querySelector('video');
+    if(vid){
+      // On the video frame, let the clip run and advance when it ends.
+      vid.play().catch(()=>{});
+      const onEnd=()=>{vid.removeEventListener('ended',onEnd);if(!paused)step()};
+      vid.addEventListener('ended',onEnd);
+      return;
+    }
+    timer=setTimeout(step,STILL_MS);
+  }
+  function step(){go(i+1);schedule()}
+  function restart(){clearTimeout(timer);schedule()}
+
+  document.getElementById('next').addEventListener('click',()=>{go(i+1);restart()});
+  document.getElementById('prev').addEventListener('click',()=>{go(i-1);restart()});
+  pp.addEventListener('click',()=>{
+    paused=!paused;pp.textContent=paused?'Play':'Pause';
+    const vid=slides[i].querySelector('video');
+    if(paused){clearTimeout(timer);if(vid)vid.pause()}else restart();
+  });
+  stage.addEventListener('mouseenter',()=>{if(!paused)clearTimeout(timer)});
+  stage.addEventListener('mouseleave',()=>{if(!paused)restart()});
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden)clearTimeout(timer); else if(!paused)restart();
+  });
+  document.addEventListener('keydown',e=>{
+    if(document.getElementById('lb').dataset.open==='true')return;
+    const r=stage.getBoundingClientRect();
+    if(r.bottom<0||r.top>innerHeight)return;      // only when the stage is on screen
+    if(e.key==='ArrowRight'){go(i+1);restart()}
+    if(e.key==='ArrowLeft'){go(i-1);restart()}
+  });
+
+  go(0);
+  // Do not start the sequence until it is actually in view.
+  new IntersectionObserver((es,ob)=>es.forEach(e=>{
+    if(e.isIntersecting){schedule();ob.disconnect()}
+  }),{threshold:.35}).observe(stage);
+})();
+
+/* ═══════════════ LIGHTBOX (a-series) ═══════════════ */
+(function(){
+  const lb=document.getElementById('lb'),img=document.getElementById('lbimg'),cap=document.getElementById('lbcap');
+  let lastFocus=null;
+  const open=(src,text,from)=>{
+    lastFocus=from||null;
+    img.src=src;img.alt=text;cap.textContent=text;
+    lb.dataset.open='true';document.body.style.overflow='hidden';
+    document.getElementById('lbx').focus();
+  };
+  const close=()=>{
+    lb.dataset.open='false';document.body.style.overflow='';img.removeAttribute('src');
+    if(lastFocus)lastFocus.focus();
+  };
+  document.querySelectorAll('.strip6 figure').forEach(f=>{
+    f.setAttribute('tabindex','0');
+    f.setAttribute('role','button');
+    const fire=()=>open(f.dataset.lb,f.dataset.cap,f);
+    f.addEventListener('click',fire);
+    f.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fire()}});
+  });
+  document.getElementById('lbx').addEventListener('click',close);
+  lb.addEventListener('click',e=>{if(e.target===lb)close()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&lb.dataset.open==='true')close()});
+})();
+
+/* ═══════════════ THEME ═══════════════ */
+(function(){
+  const root=document.documentElement,btn=document.getElementById('theme');
+  btn.addEventListener('click',()=>{
+    const next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+    root.setAttribute('data-theme',next);
+    try{localStorage.setItem('ledger-theme',next)}catch(e){}
+  });
+})();
+
+/* ═══════════════ REVEAL + COUNTERS + BARS ═══════════════ */
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{threshold:.1});
+document.querySelectorAll(".reveal").forEach(e=>io.observe(e));
+
+/* Real values are already in the HTML; the count-up is enhancement only, so a fast
+   anchor scroll that skips the observer still leaves the correct figure on screen. */
+const cio=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting)return;cio.unobserve(e.target);
+  const el=e.target,end=parseFloat(el.dataset.count),dec=parseInt(el.dataset.dec||"0"),dur=1500,t0=performance.now();
+  const step=t=>{const p=Math.min((t-t0)/dur,1),e2=1-Math.pow(1-p,3),v=end*e2;
+    el.textContent=dec?v.toFixed(dec):Math.round(v).toLocaleString();
+    if(p<1)requestAnimationFrame(step)};
+  requestAnimationFrame(step);
+}),{threshold:.5});
+document.querySelectorAll("[data-count]").forEach(e=>cio.observe(e));
+
+const bio=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting)return;bio.unobserve(e.target);
+  e.target.style.width=e.target.dataset.w+"%";
+}),{threshold:.4});
+document.querySelectorAll(".gapbar__fill,.tonrow__fill").forEach(e=>bio.observe(e));
+</script>
+</body>
+</html>
