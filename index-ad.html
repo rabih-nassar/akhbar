@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>فور يور إنفرمايشن | For Your Information | أخبار</title>
+<meta name="description" content="أخبار لبنان لحظة بلحظة — الأخبار المميّزة والحصرية والمباشرة من تيار والنشرة، مجمّعة في صفحة واحدة سريعة وسهلة القراءة." />
+<meta name="theme-color" content="#c2251a" />
+<link rel="canonical" href="https://akhbar.fyi/" />
+
+<!-- Favicons / app icons -->
+<link rel="icon" type="image/png" sizes="128x128" href="assets/FYI-logo-sml.png" />
+<link rel="shortcut icon" type="image/png" href="assets/FYI-logo-sml.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png" />
+
+<!-- Open Graph (Facebook, LinkedIn, WhatsApp, Telegram, Slack) -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Akhbar.FYI" />
+<meta property="og:locale" content="ar_LB" />
+<meta property="og:locale:alternate" content="en_US" />
+<meta property="og:url" content="https://akhbar.fyi/" />
+<meta property="og:title" content="فور يور إنفرمايشن | Akhbar.FYI — أخبار لبنان" />
+<meta property="og:description" content="أخبار لبنان لحظة بلحظة — الأخبار المميّزة والحصرية والمباشرة من تيار والنشرة، مجمّعة في صفحة واحدة سريعة وسهلة القراءة." />
+<meta property="og:image" content="https://akhbar.fyi/assets/og-image.png" />
+<meta property="og:image:secure_url" content="https://akhbar.fyi/assets/og-image.png" />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Akhbar.FYI" />
+
+<!-- Twitter / X -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="فور يور إنفرمايشن | Akhbar.FYI — أخبار لبنان" />
+<meta name="twitter:description" content="أخبار لبنان لحظة بلحظة — الأخبار المميّزة والحصرية والمباشرة من تيار والنشرة، مجمّعة في صفحة واحدة سريعة وسهلة القراءة." />
+<meta name="twitter:image" content="https://akhbar.fyi/assets/og-image.png" />
+<meta name="twitter:image:alt" content="Akhbar.FYI" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;900&family=Zilla+Slab:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg: oklch(100% 0 0);
+    --panel: oklch(100% 0 0);
+    --accent: oklch(52% 0.19 25);
+    --accent-ink: oklch(98% 0.01 25);
+    --ink: oklch(20% 0.01 80);
+    --muted: oklch(48% 0.015 80);
+    --border: oklch(90% 0.006 80);
+    --rule: oklch(85% 0.008 80);
+    --ease: cubic-bezier(.16,1,.3,1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Noto Kufi Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Masthead ---------- */
+.site-header {
+    background: var(--accent);
+    padding: 9px 28px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 1px 0 oklch(40% 0.16 25 / .5);
+}
+.site-header .masthead-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    position: relative;
+}
+.site-header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 900;
+    text-transform: lowercase;
+    color: var(--accent-ink);
+    letter-spacing: .5px;
+    text-align: center;
+}
+.masthead-meta {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: oklch(94% 0.03 25);
+    letter-spacing: .3px;
+    white-space: nowrap;
+}
+.masthead-meta .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: oklch(94% 0.03 25);
+    display: inline-block;
+    margin-inline-end: 6px;
+    animation: pulse-dot 1.8s var(--ease) infinite;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .35; transform: scale(.8); }
+}
+
+main#app { padding: 32px 24px 60px; max-width: 1180px; margin: 0 auto; }
+
+.loading {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--muted);
+    font-size: 15px;
+}
+.loading::before {
+    content: '';
+    display: block;
+    width: 22px; height: 22px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr 1fr;
+    gap: 0;
+    align-items: start;
+}
+.col {
+    padding: 0 26px;
+    position: relative;
+    animation: rise .5s var(--ease) both;
+}
+.col + .col { border-inline-start: 1px solid var(--rule); }
+@keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.featured-col { animation-delay: 0s; }
+.live-col { animation-delay: .06s; }
+.exclusive-col { animation-delay: .12s; }
+
+@media (max-width: 1000px) {
+    main#app { padding: 32px 12px 60px; }
+    .grid { grid-template-columns: 1fr; }
+    .col { padding: 0 13px; }
+    .col + .col { border-inline-start: none; border-top: 1px solid var(--rule); padding-top: 28px; margin-top: 28px; }
+    .live-col { order: 1; border-top: none !important; margin-top: 0 !important; padding-top: 0 !important; }
+    .featured-col { order: 2; }
+    .exclusive-col { order: 3; }
+}
+
+/* Wide screens: page spans edge-to-edge, side columns keep a fixed
+   comfortable width, and Live News expands to fill all remaining space. */
+@media (min-width: 1300px) {
+    main#app { max-width: none; }
+    .grid { grid-template-columns: 340px 1fr 340px; }
+}
+
+@media (max-width: 700px) {
+    .site-header .masthead-inner { position: static; }
+    .masthead-meta {
+        position: static;
+        transform: none;
+        justify-content: center;
+        margin-top: 4px;
+    }
+}
+
+.section-title {
+    font-family: "Noto Kufi Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    color: var(--ink);
+    padding-bottom: 10px;
+    margin: 0 0 18px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+.section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+    transform: translateY(-3px);
+}
+.section-title .mark { color: var(--accent); font-style: normal; }
+
+.cards { display: flex; flex-direction: column; gap: 18px; }
+
+.featured-col .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 16px;
+}
+
+.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s var(--ease);
+}
+.card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 14px 28px -14px oklch(52% 0.19 25 / .35);
+}
+
+.card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    display: block;
+    background: var(--border);
+    transition: transform .5s var(--ease);
+}
+.card:hover img { transform: scale(1.04); }
+
+.featured-col .card img {
+    aspect-ratio: 1 / 1;
+    height: auto;
+}
+
+.card .body { padding: 12px 14px 15px; }
+.card .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 7px;
+    letter-spacing: .8px;
+    font-weight: 700;
+}
+.card .tag::before { content: '—'; margin-inline-end: 5px; }
+.card h3 { font-family: "Zilla Slab", Georgia, serif; font-weight: 600; font-size: 16px; margin: 0; line-height: 1.45; }
+.featured-col .card h3 { font-size: 14px; }
+.featured-col .card .body { padding: 9px 11px 13px; }
+
+.exclusive-col .card h3 { font-size: 15px; }
+.exclusive-col .card .body { padding: 11px 13px; }
+
+.tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--rule);
+}
+.tab-btn {
+    flex: 1;
+    padding: 9px 10px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color .2s var(--ease), border-color .2s var(--ease);
+    margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.tab-panel.active { display: flex; }
+.tab-panel:not(.active) { display: none !important; }
+
+.live-list {
+    display: flex;
+    flex-direction: column;
+}
+.live-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 2px;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    transition: padding-inline-start .2s var(--ease), background .2s var(--ease);
+}
+.live-item:last-child { border-bottom: none; }
+.live-item:hover { padding-inline-start: 6px; background: oklch(96% 0.01 25 / .6); }
+.live-item .time {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 12.5px;
+    min-width: 40px;
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+    unicode-bidi: isolate;
+}
+.live-item .title { font-size: 14px; line-height: 1.5; flex: 1; }
+.live-item .clickable-icon {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    opacity: .55;
+    transition: opacity .2s var(--ease), transform .2s var(--ease);
+}
+.live-item:hover .clickable-icon { opacity: 1; transform: translateX(-2px); }
+[dir="rtl"] .live-item:hover .clickable-icon { transform: translateX(2px); }
+
+/* ---------- Reader modal ---------- */
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 10px;
+    box-sizing: border-box;
+}
+.modal.hidden { display: none; }
+.modal.reader-active { padding: 0; }
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: oklch(15% 0.01 80 / .6);
+    backdrop-filter: blur(2px);
+}
+.reader-progress {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    z-index: 101;
+    background: transparent;
+}
+.reader-progress::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: var(--progress, 0%);
+    background: var(--accent);
+    transition: width .1s linear;
+}
+.modal-panel {
+    position: relative;
+    background: var(--panel);
+    border-radius: 6px;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    overflow-y: auto;
+    padding: 68px 0 44px;
+    border: 1px solid var(--border);
+    box-sizing: border-box;
+    animation: modal-in .35s var(--ease);
+    transition: padding .3s var(--ease), border-radius .3s var(--ease), border-color .3s var(--ease);
+}
+@keyframes modal-in {
+    from { opacity: 0; transform: scale(.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+.modal-actions {
+    position: absolute;
+    top: 16px;
+    left: 20px;
+    z-index: 1;
+    display: flex;
+    gap: 8px;
+}
+.modal-close, .reader-mode-btn, .reader-font-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease), background .2s var(--ease);
+}
+.modal-close {
+    position: static;
+}
+.modal-close svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+.modal-close:hover { color: var(--accent); border-color: var(--accent); transform: rotate(90deg); }
+.reader-mode-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.reader-mode-btn:hover { color: var(--accent); border-color: var(--accent); }
+.reader-mode-btn.active {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-color: var(--accent);
+}
+.reader-font-btn {
+    display: none;
+    font-family: "Zilla Slab", Georgia, serif;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0;
+    gap: 1px;
+    direction: ltr;
+}
+.reader-font-btn small { font-size: 10px; }
+.reader-font-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.reader-font-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.reader-font-btn:disabled { opacity: .35; cursor: default; }
+.modal.reader-active .reader-font-btn { display: flex; }
+
+.reader { max-width: 80%; margin: 0 auto; transition: max-width .3s var(--ease); }
+.article-title { font-family: "Zilla Slab", Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1.35; margin: 10px 0 14px; text-align: center; }
+.article-meta { color: var(--muted); font-size: 13px; margin-bottom: 26px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; transition: opacity .25s var(--ease); }
+.article-meta .tag {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border-radius: 4px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    transition: opacity .25s var(--ease), max-width .25s var(--ease);
+}
+.article-image { width: 100%; max-width: min(800px, 33vw); height: auto; border-radius: 6px; margin: 0 auto 26px; display: block; transition: opacity .25s var(--ease), max-height .3s var(--ease), margin .3s var(--ease); }
+.reader img { max-width: min(800px, 33vw); height: auto; display: block; margin-left: auto; margin-right: auto; }
+.article-body { line-height: 2; font-size: 17px; white-space: pre-wrap; transition: font-size .25s var(--ease), line-height .25s var(--ease), font-family .25s var(--ease), letter-spacing .25s var(--ease); }
+.article-body p { margin: 0 0 1.1em; }
+.reader-source {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    transition: opacity .25s var(--ease);
+}
+.reader-source a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.reader-source a:hover { text-decoration: underline; }
+.error-msg { color: var(--accent); text-align: center; padding: 60px 20px; font-size: 15px; }
+
+/* ---------- Minimalist reader mode ---------- */
+.modal-panel.reader-mode {
+    background: oklch(98.5% 0.006 80);
+    border-radius: 0;
+    border: none;
+    padding: 68px 0 44px;
+}
+.reader-mode .reader { max-width: 90%; }
+.reader-mode .article-image { display: none; }
+.reader-mode .article-meta .tag { display: none; }
+.reader-mode .article-meta { opacity: .7; }
+.reader-mode .article-body {
+    font-family: "Zilla Slab", Georgia, serif;
+    font-size: calc(19px * var(--reader-scale, 1));
+    line-height: 2.15;
+    letter-spacing: .1px;
+}
+.reader-mode .reader-source { opacity: .55; }
+.reader-mode .article-title { font-size: calc(27px * var(--reader-scale, 1)); }
+
+/* ---------- Ad placement preview ----------
+   AD_MODE = 'placeholder' draws labelled boxes so placements can be reviewed.
+   AD_MODE = 'live' swaps in real <ins class="adsbygoogle"> units.          */
+.ad-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 26px auto;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    background: repeating-linear-gradient(45deg, transparent, transparent 9px, oklch(0% 0 0 / .035) 9px, oklch(0% 0 0 / .035) 18px);
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    text-align: center;
+    direction: ltr;
+}
+.ad-slot.is-live { display: block; border: none; background: none; }
+.ad-slot-label { padding: 6px 12px; line-height: 1.6; }
+/* In-article units match the 800px image ceiling so they read as part of the
+   article rather than as a band across the full 80% column. */
+.ad-slot--inArticle, .ad-slot--endArticle { max-width: 800px; }
+.reader-mode .ad-slot--inArticle { display: none; }   /* reading mode stays clean */
+.ad-slot--inFeed { margin: 14px auto; }
+.ad-slot--rail { display: none; }
+@media (min-width: 1300px) {
+    .ad-slot--rail {
+        display: flex;
+        position: sticky;
+        top: 20px;
+        width: 300px;
+        margin: 26px auto 0;
+    }
+}
+.ad-anchor {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 62px;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: .09em;
+    text-transform: uppercase;
+    direction: ltr;
+}
+.ad-anchor-close {
+    position: absolute;
+    inset-inline-end: 10px;
+    width: 26px; height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--bg);
+    color: var(--muted);
+    cursor: pointer;
+    line-height: 1;
+}
+.ad-anchor.is-dismissed { display: none; }
+/* The anchor would sit on top of full-screen reading mode - hide it there. */
+#modal.reader-active ~ .ad-anchor { display: none; }
+body { padding-bottom: 62px; }
+@media (max-width: 700px) { .ad-anchor { height: 52px; } body { padding-bottom: 52px; } }
+</style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="masthead-inner">
+            <h1>فور يور إنفرمايشن | For Your Information | أخبار </h1>
+            <div class="masthead-meta">
+                <span><span class="dot"></span>مباشر</span>
+                <span id="todayDate"></span>
+            </div>
+        </div>
+    </header>
+
+    <main id="app">
+        <div id="loading" class="loading">Loading latest news…</div>
+        <div id="content" class="grid" style="display:none">
+            <section class="col featured-col">
+                <h2 class="section-title"><span class="mark">TAYYAR</span> Featured News</h2>
+                <div id="featured" class="cards"></div>
+            </section>
+
+            <section class="col live-col">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="tayyar">Tayyar</button>
+                    <button class="tab-btn" data-tab="elnashra">Elnashra</button>
+                </div>
+                <div id="live-tayyar" class="live-list tab-panel active"></div>
+                <div id="live-elnashra" class="live-list tab-panel"></div>
+            </section>
+
+            <section class="col exclusive-col">
+                <h2 class="section-title"><span class="mark">TAYYAR</span> Exclusive</h2>
+                <div id="exclusive" class="cards"></div>
+                <div id="adRail"></div>
+            </section>
+        </div>
+    </main>
+
+    <div id="modal" class="modal hidden">
+        <div class="modal-backdrop"></div>
+        <div class="reader-progress" id="readerProgress"></div>
+        <div class="modal-panel" id="modalPanel">
+            <div class="modal-actions">
+                <button id="readerModeBtn" class="reader-mode-btn" title="Reader mode">
+                    <svg viewBox="0 0 24 24"><path d="M4 5.5c2-1 5-1.5 8-1.5s6 .5 8 1.5v13c-2-1-5-1.5-8-1.5s-6 .5-8 1.5v-13Z"/><path d="M12 4v15"/></svg>
+                </button>
+                <button id="fontDecBtn" class="reader-font-btn" title="Decrease text size" aria-label="Decrease text size">A<small>&minus;</small></button>
+                <button id="fontResetBtn" class="reader-font-btn" title="Reset text size" aria-label="Reset text size">
+                    <svg viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3 8.6"/><path d="M3 3.5V9h5.5"/></svg>
+                </button>
+                <button id="fontIncBtn" class="reader-font-btn" title="Increase text size" aria-label="Increase text size">A<small>+</small></button>
+                <button id="modalClose" class="modal-close">
+                    <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>
+                </button>
+            </div>
+            <div id="modalBody" class="modal-body reader">
+                <div class="loading">Loading article…</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ad-anchor" id="adAnchor">
+        <span class="ad-slot-label">Ad &middot; bottom anchor &mdash; Auto ads, anchor format only</span>
+        <button class="ad-anchor-close" id="adAnchorClose" aria-label="Dismiss">&times;</button>
+    </div>
+
+<script>
+const BASE_URL = 'https://www.tayyar.org';
+const ELNASHRA_BASE_URL = 'https://www.elnashra.com';
+// Both sites send no CORS headers (elnashra also uses a Cloudflare bot
+// challenge), so a direct fetch() from the local file will usually fail.
+// We try a direct fetch first, then fall back to public CORS proxies that
+// mirror the raw HTML response.
+const CORS_PROXIES = [
+    (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+];
+
+async function fetchHtml(url) {
+    try {
+        const res = await fetch(url, { mode: 'cors' });
+        if (res.ok) return await res.text();
+    } catch (e) { /* fall through to proxies */ }
+
+    for (const buildProxyUrl of CORS_PROXIES) {
+        try {
+            const res = await fetch(buildProxyUrl(url));
+            if (res.ok) return await res.text();
+        } catch (e) { /* try next proxy */ }
+    }
+    throw new Error('Unable to fetch content (direct and proxy attempts failed)');
+}
+
+function absUrl(href, base) {
+    if (!href) return null;
+    return href.startsWith('http') ? href : (base || BASE_URL) + href;
+}
+
+function parseHtml(html) {
+    return new DOMParser().parseFromString(html, 'text/html');
+}
+
+function text(el) {
+    return el ? el.textContent.replace(/\s+/g, ' ').trim() : '';
+}
+
+// textContent flattens block structure (and drops <br>) so articles come back as
+// one run-on paragraph. Walk the tree instead, breaking on <br> and block tags.
+const BLOCK_TAGS = new Set([
+    'P', 'DIV', 'LI', 'UL', 'OL', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+    'BLOCKQUOTE', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'ASIDE',
+    'FIGURE', 'FIGCAPTION', 'TABLE', 'TR', 'PRE', 'HR', 'PICTURE', 'IFRAME'
+]);
+
+function blockText(root) {
+    let out = '';
+    const breakLine = () => { if (out && !out.endsWith('\n')) out += '\n'; };
+    const walk = (node) => {
+        node.childNodes.forEach(child => {
+            if (child.nodeType === Node.TEXT_NODE) {
+                out += child.nodeValue.replace(/\s+/g, ' ');
+            } else if (child.nodeType === Node.ELEMENT_NODE) {
+                const tag = child.tagName;
+                if (tag === 'BR') { out += '\n'; return; }
+                const isBlock = BLOCK_TAGS.has(tag);
+                if (isBlock) breakLine();
+                walk(child);
+                if (isBlock) breakLine();
+            }
+        });
+    };
+    walk(root);
+    return out.split('\n').map(line => line.trim()).filter(Boolean).join('\n');
+}
+
+async function scrapeHomepage() {
+    const html = await fetchHtml(BASE_URL + '/');
+    const doc = parseHtml(html);
+
+    const featured = [];
+    doc.querySelectorAll('.Featured .swiper-slide').forEach(el => {
+        const link = el.querySelector('a.item');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href'));
+        const title = text(link.querySelector('h3.caption'));
+        const image = link.querySelector('img') ? link.querySelector('img').getAttribute('src') : null;
+        const tagEl = link.querySelector('.nametag');
+        const tag = tagEl ? text(tagEl) : null;
+        if (href && title) {
+            featured.push({ id: el.getAttribute('data-article-id') || href, title, url: href, image, tag });
+        }
+    });
+
+    const exclusive = [];
+    doc.querySelectorAll('.Exclusive .list > li').forEach(el => {
+        const link = el.querySelector('a.item');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href'));
+        const title = text(link.querySelector('h3.caption'));
+        const image = link.querySelector('img') ? link.querySelector('img').getAttribute('src') : null;
+        if (href && title) {
+            exclusive.push({ id: href, title, url: href, image });
+        }
+    });
+
+    const live = [];
+    doc.querySelectorAll('#liveNewsList > li').forEach(el => {
+        const link = el.querySelector('a.news');
+        const href = link ? absUrl(link.getAttribute('href')) : null;
+        let title = '';
+        if (link) {
+            const caption = link.querySelector('h3.caption');
+            if (caption) {
+                const clone = caption.cloneNode(true);
+                clone.querySelectorAll('.more-link').forEach(n => n.remove());
+                title = text(clone);
+            }
+        }
+        const clockEl = el.querySelector('.clock');
+        const time = clockEl ? text(clockEl) : '';
+        if (title) {
+            live.push({ id: el.getAttribute('data-livearticle-id'), title, url: href, time });
+        }
+    });
+
+    return { featured, exclusive, live };
+}
+
+async function scrapeArticle(url) {
+    const html = await fetchHtml(url);
+    const doc = parseHtml(html);
+
+    const titleEl = doc.querySelector('#MainArticleTitle') || doc.querySelector('h1.title');
+    const title = text(titleEl);
+
+    const imgEl = doc.querySelector('.Article .photo img');
+    const metaImg = doc.querySelector('meta[itemprop="image"]');
+    const image = imgEl ? imgEl.getAttribute('src') : (metaImg ? metaImg.getAttribute('content') : null);
+
+    const dateEl = doc.querySelector('.Article .date');
+    const date = dateEl ? text(dateEl) : '';
+
+    const tags = [];
+    doc.querySelectorAll('.Article .taglist .nametag').forEach(el => tags.push(text(el)));
+
+    const bodyEl = doc.querySelector('.Article .text');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style').forEach(n => n.remove());
+        body = blockText(clone);
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
+async function scrapeElnashraLive() {
+    const html = await fetchHtml(ELNASHRA_BASE_URL + '/');
+    const doc = parseHtml(html);
+
+    const items = [];
+    doc.querySelectorAll('.unread-news .listnews.collapse > li.item').forEach(el => {
+        const link = el.querySelector('a.newstitle');
+        if (!link) return;
+        const href = absUrl(link.getAttribute('href') || el.getAttribute('data-url'), ELNASHRA_BASE_URL);
+        const title = link.getAttribute('title') || text(link.querySelector('.item-title'));
+        if (href && title) {
+            items.push({ id: el.getAttribute('data-newsid') || href, title, url: href, isElnashra: true });
+        }
+    });
+
+    // Elnashra's homepage list has no timestamps and isn't in chronological
+    // order, so fetch each article's real publish date/time (cached in
+    // localStorage for performance) and sort newest-first, like Tayyar.
+    const cache = loadElnashraDateCache();
+    const now = Date.now();
+    await Promise.all(items.map(async item => {
+        const cached = cache[item.url];
+        if (cached && (now - cached.ts) < ELNASHRA_DATE_CACHE_TTL) {
+            item.sortDate = cached.sortDate;
+            item.time = cached.time;
+            return;
+        }
+        const dateStr = await fetchElnashraDate(item.url);
+        const parsed = parseElnashraDate(dateStr);
+        item.sortDate = parsed ? parsed.getTime() : 0;
+        item.time = parsed ? formatClockTime(parsed) : '';
+        cache[item.url] = { sortDate: item.sortDate, time: item.time, ts: now };
+    }));
+    saveElnashraDateCache(cache);
+
+    items.sort((a, b) => b.sortDate - a.sortDate);
+
+    return items;
+}
+
+const ARABIC_MONTHS = {
+    'كانون الثاني': 0, 'يناير': 0,
+    'شباط': 1, 'فبراير': 1,
+    'آذار': 2, 'مارس': 2,
+    'نيسان': 3, 'أبريل': 3,
+    'أيار': 4, 'مايو': 4,
+    'حزيران': 5, 'يونيو': 5,
+    'تموز': 6, 'يوليو': 6,
+    'آب': 7, 'أغسطس': 7,
+    'أيلول': 8, 'سبتمبر': 8,
+    'تشرين الأول': 9, 'أكتوبر': 9,
+    'تشرين الثاني': 10, 'نوفمبر': 10,
+    'كانون الأول': 11, 'ديسمبر': 11,
+};
+
+function parseElnashraDate(str) {
+    if (!str) return null;
+    const clean = str.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+    const dayMatch = clean.match(/(\d{1,2})\s+([\u0600-\u06FF ]+?)\s+(\d{4})/);
+    const timeMatch = clean.match(/(\d{1,2}):(\d{2})/);
+    if (!dayMatch || !timeMatch) return null;
+    const day = parseInt(dayMatch[1], 10);
+    const month = ARABIC_MONTHS[dayMatch[2].trim()];
+    const year = parseInt(dayMatch[3], 10);
+    const hour = parseInt(timeMatch[1], 10);
+    const minute = parseInt(timeMatch[2], 10);
+    if (month === undefined || isNaN(day) || isNaN(year)) return null;
+    return new Date(year, month, day, hour, minute);
+}
+
+function formatClockTime(date) {
+    const h = String(date.getHours()).padStart(2, '0');
+    const m = String(date.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+}
+
+async function fetchElnashraDate(url) {
+    try {
+        const html = await fetchHtml(url);
+        const doc = parseHtml(html);
+        const dateEl = doc.querySelector('.desktop-date');
+        return dateEl ? text(dateEl) : '';
+    } catch (e) {
+        return '';
+    }
+}
+
+const ELNASHRA_DATE_CACHE_KEY = 'akhbar-elnashra-date-cache';
+const ELNASHRA_DATE_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+const ELNASHRA_DATE_CACHE_MAX_AGE = 48 * 60 * 60 * 1000; // prune entries older than this
+
+function loadElnashraDateCache() {
+    try {
+        return JSON.parse(localStorage.getItem(ELNASHRA_DATE_CACHE_KEY)) || {};
+    } catch (e) {
+        return {};
+    }
+}
+
+function saveElnashraDateCache(cache) {
+    const now = Date.now();
+    const pruned = {};
+    for (const [url, entry] of Object.entries(cache)) {
+        if (now - entry.ts < ELNASHRA_DATE_CACHE_MAX_AGE) pruned[url] = entry;
+    }
+    try {
+        localStorage.setItem(ELNASHRA_DATE_CACHE_KEY, JSON.stringify(pruned));
+    } catch (e) { /* localStorage unavailable or full, skip caching */ }
+}
+
+async function scrapeElnashraArticle(url) {
+    const html = await fetchHtml(url);
+    const doc = parseHtml(html);
+
+    const titleEl = doc.querySelector('h1[itemprop="headline"]') || doc.querySelector('h1.topTitle');
+    const title = text(titleEl);
+
+    const dateEl = doc.querySelector('.desktop-date');
+    const date = dateEl ? text(dateEl) : '';
+
+    const tagEl = doc.querySelector('.categoryName');
+    const tags = tagEl ? [text(tagEl)] : [];
+
+    const metaImg = doc.querySelector('meta[property="og:image"]') || doc.querySelector('meta[itemprop="image"]');
+    const image = metaImg ? metaImg.getAttribute('content') : null;
+
+    const bodyEl = doc.querySelector('.articleBody');
+    let body = '';
+    if (bodyEl) {
+        const clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll('script, style, .ad-container, [id^="div-gpt-ad"], .inread-video').forEach(n => n.remove());
+        body = blockText(clone);
+    }
+
+    return { title, image, date, tags, body, url };
+}
+
+
+/* ==================================================================
+   AD PLACEMENT LAYER
+   Flip AD_MODE to 'live' and fill in the client/slot ids to go real.
+   ================================================================== */
+const AD_MODE = 'placeholder';                       // 'placeholder' | 'live'
+const ADSENSE_CLIENT = 'ca-pub-XXXXXXXXXXXXXXXX';    // <- your publisher id
+const AD_SLOTS = {
+    inArticle:  { slot: '0000000001', format: 'fluid',    layout: 'in-article', minHeight: 250, label: 'In-article &mdash; after &para;3 &middot; highest RPM slot' },
+    endArticle: { slot: '0000000002', format: 'auto',     layout: null,         minHeight: 250, label: 'End of article &mdash; above the source link' },
+    inFeed:     { slot: '0000000003', format: 'fluid',    layout: 'in-feed',    minHeight: 118, label: 'In-feed &mdash; every 7 live items' },
+    rail:       { slot: '0000000004', format: 'vertical', layout: null,         minHeight: 600, label: 'Sidebar 300&times;600 &mdash; sticky, desktop &ge;1300px only' }
+};
+
+function adMarkup(key) {
+    const cfg = AD_SLOTS[key];
+    if (AD_MODE !== 'live') {
+        return `<div class="ad-slot ad-slot--${key}" style="min-height:${cfg.minHeight}px">`
+             + `<span class="ad-slot-label">Ad &middot; ${cfg.label}</span></div>`;
+    }
+    // in-feed units also need a data-ad-layout-key from the AdSense UI.
+    const layout = cfg.layout ? ` data-ad-layout="${cfg.layout}"` : '';
+    return `<div class="ad-slot ad-slot--${key} is-live" style="min-height:${cfg.minHeight}px">`
+         + `<ins class="adsbygoogle" style="display:block" data-ad-client="${ADSENSE_CLIENT}"`
+         + ` data-ad-slot="${cfg.slot}" data-ad-format="${cfg.format}"${layout}`
+         + ` data-full-width-responsive="true"></ins></div>`;
+}
+
+// Every article open replaces modalBody.innerHTML, so each open gets a BRAND NEW
+// <ins>. Pushing to an <ins> that already rendered throws
+// "All 'ins' elements already have ads in them." Hence the is-pushed guard.
+function activateAds(root) {
+    if (AD_MODE !== 'live' || !root) return;
+    root.querySelectorAll('ins.adsbygoogle:not(.is-pushed)').forEach(ins => {
+        ins.classList.add('is-pushed');
+        try {
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (e) {
+            console.warn('adsbygoogle push failed', e);
+        }
+    });
+}
+
+/* ---------- ?page= routing -------------------------------------------------
+   A fragment (#) never reaches the server, so the crawler cannot tell article
+   URLs apart. A query param does, and needs no Cloudflare config since the file
+   itself still resolves. The param round-trips: a direct load of ?page=... opens
+   that same article, so the URL never shows content it did not push.          */
+function pageParam(url, source) {
+    const base = source === 'elnashra' ? ELNASHRA_BASE_URL : BASE_URL;
+    const prefix = source === 'elnashra' ? 'elnashra' : 'tayyar';
+    return url.startsWith(base) ? prefix + url.slice(base.length) : url;
+}
+
+function pageParamToArticle(page) {
+    if (!page) return null;
+    if (page.startsWith('http')) return { url: page, source: undefined };
+    const cut = page.indexOf('/');
+    if (cut < 0) return null;
+    const kind = page.slice(0, cut), path = page.slice(cut);
+    if (kind === 'elnashra') return { url: ELNASHRA_BASE_URL + path, source: 'elnashra' };
+    if (kind === 'tayyar') return { url: BASE_URL + path, source: undefined };
+    return null;
+}
+
+// Keep the slashes readable in the address bar; they are legal in a query value.
+function pageHref(page) {
+    return location.pathname + '?page=' + encodeURIComponent(page).replace(/%2F/g, '/');
+}
+
+const loadingEl = document.getElementById('loading');
+const contentEl = document.getElementById('content');
+const modal = document.getElementById('modal');
+const modalBody = document.getElementById('modalBody');
+const modalClose = document.getElementById('modalClose');
+const readerModeBtn = document.getElementById('readerModeBtn');
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+function attachClicks(container) {
+    container.querySelectorAll('[data-url]').forEach(node => {
+        node.addEventListener('click', () => openArticle(decodeURIComponent(node.dataset.url), node.dataset.source));
+    });
+}
+
+function renderFeatured(items) {
+    const el = document.getElementById('featured');
+    el.innerHTML = items.map(item => `
+        <div class="card" data-url="${encodeURIComponent(item.url)}">
+            ${item.image ? `<img src="${item.image}" alt="">` : ''}
+            <div class="body">
+                ${item.tag ? `<span class="tag">${escapeHtml(item.tag)}</span>` : ''}
+                <h3>${escapeHtml(item.title)}</h3>
+            </div>
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+function renderExclusive(items) {
+    const el = document.getElementById('exclusive');
+    el.innerHTML = items.map(item => `
+        <div class="card" data-url="${encodeURIComponent(item.url)}">
+            ${item.image ? `<img src="${item.image}" alt="">` : ''}
+            <div class="body">
+                <span class="tag">Exclusive</span>
+                <h3>${escapeHtml(item.title)}</h3>
+            </div>
+        </div>
+    `).join('');
+    attachClicks(el);
+}
+
+// Splices an in-feed unit after every `every` items, never as the last row.
+function withFeedAds(cards, every = 7) {
+    const out = [];
+    cards.forEach((card, i) => {
+        out.push(card);
+        if ((i + 1) % every === 0 && i !== cards.length - 1) out.push(adMarkup('inFeed'));
+    });
+    return out.join('');
+}
+
+function renderLive(items) {
+    const el = document.getElementById('live-tayyar');
+    el.innerHTML = withFeedAds(items.map(item => `
+        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}"` : 'style="cursor:default"'}>
+            <div class="time">${escapeHtml(item.time || '')}</div>
+            <div class="title">${escapeHtml(item.title)}</div>
+            ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
+        </div>
+    `));
+    attachClicks(el);
+    activateAds(el);
+}
+
+function renderElnashraLive(items) {
+    const el = document.getElementById('live-elnashra');
+    el.innerHTML = withFeedAds(items.map(item => `
+        <div class="live-item" ${item.url ? `data-url="${encodeURIComponent(item.url)}" data-source="elnashra"` : 'style="cursor:default"'}>
+            <div class="time">${escapeHtml(item.time || '')}</div>
+            <div class="title">${escapeHtml(item.title)}</div>
+            ${item.url ? '<span class="clickable-icon" title="Read more">&#8250;</span>' : ''}
+        </div>
+    `));
+    attachClicks(el);
+    activateAds(el);
+}
+
+const modalPanel = document.getElementById('modalPanel');
+const readerProgress = document.getElementById('readerProgress');
+
+function updateReaderProgress() {
+    const max = modalPanel.scrollHeight - modalPanel.clientHeight;
+    const pct = max > 0 ? (modalPanel.scrollTop / max) * 100 : 0;
+    readerProgress.style.setProperty('--progress', pct + '%');
+}
+modalPanel.addEventListener('scroll', updateReaderProgress);
+
+const fontDecBtn = document.getElementById('fontDecBtn');
+const fontIncBtn = document.getElementById('fontIncBtn');
+const fontResetBtn = document.getElementById('fontResetBtn');
+const READER_SCALE_KEY = 'akhbar-reader-scale';
+const MIN_SCALE = 0.8, MAX_SCALE = 1.8, SCALE_STEP = 0.1, DEFAULT_SCALE = 1;
+let readerScale = parseFloat(localStorage.getItem(READER_SCALE_KEY)) || DEFAULT_SCALE;
+
+function setReaderScale(value) {
+    readerScale = Math.round(Math.min(MAX_SCALE, Math.max(MIN_SCALE, value)) * 100) / 100;
+    modalPanel.style.setProperty('--reader-scale', readerScale);
+    localStorage.setItem(READER_SCALE_KEY, readerScale);
+    fontDecBtn.disabled = readerScale <= MIN_SCALE;
+    fontIncBtn.disabled = readerScale >= MAX_SCALE;
+    fontResetBtn.disabled = readerScale === DEFAULT_SCALE;
+    updateReaderProgress();
+}
+fontDecBtn.addEventListener('click', () => setReaderScale(readerScale - SCALE_STEP));
+fontIncBtn.addEventListener('click', () => setReaderScale(readerScale + SCALE_STEP));
+fontResetBtn.addEventListener('click', () => setReaderScale(DEFAULT_SCALE));
+setReaderScale(readerScale);
+
+async function openArticle(url, source, push = true) {
+    if (push) {
+        const page = pageParam(url, source);
+        history.pushState({ page, pushed: true }, '', pageHref(page));
+    }
+    modal.classList.remove('hidden');
+    modalPanel.classList.remove('reader-mode');
+    modal.classList.remove('reader-active');
+    readerModeBtn.classList.remove('active');
+    modalPanel.scrollTop = 0;
+    readerProgress.style.setProperty('--progress', '0%');
+    modalBody.innerHTML = '<div class="loading">Loading article…</div>';
+    try {
+        const data = source === 'elnashra' ? await scrapeElnashraArticle(url) : await scrapeArticle(url);
+        const siteName = source === 'elnashra' ? 'elnashra.com' : 'tayyar.org';
+        const paras = (data.body || '').split(/\n+/).filter(Boolean).map(p => `<p>${escapeHtml(p)}</p>`);
+        // In-article unit after the 3rd paragraph, but only once the article is
+        // long enough that it is not the bulk of what the reader sees.
+        if (paras.length >= 5) paras.splice(3, 0, adMarkup('inArticle'));
+        const paragraphs = paras.join('');
+        modalBody.innerHTML = `
+            <h2 class="article-title">${escapeHtml(data.title)}</h2>
+            <div class="article-meta">
+                ${(data.tags || []).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+                ${data.date ? escapeHtml(data.date) : ''}
+            </div>
+            ${data.image ? `<img class="article-image" src="${data.image}" alt="">` : ''}
+            <div class="article-body">${paragraphs}</div>
+            ${adMarkup('endArticle')}
+            <div class="reader-source"><a href="${url}" target="_blank" rel="noopener">View original on ${siteName} ←</a></div>
+        `;
+        activateAds(modalBody);
+        updateReaderProgress();
+    } catch (err) {
+        modalBody.innerHTML = `<div class="error-msg">Failed to load article: ${err.message}</div>`;
+    }
+}
+
+readerModeBtn.addEventListener('click', () => {
+    const active = modalPanel.classList.toggle('reader-mode');
+    modal.classList.toggle('reader-active', active);
+    readerModeBtn.classList.toggle('active', active);
+    updateReaderProgress();
+});
+
+function hideModal() {
+    modal.classList.add('hidden');
+}
+
+function closeModal() {
+    const st = history.state || {};
+    // Only walk back when WE pushed the entry; a direct ?page= landing has no
+    // previous entry of ours and back() would leave the site.
+    if (st.page && st.pushed) { history.back(); return; }
+    hideModal();
+    if (location.search) history.replaceState({}, '', location.pathname);
+}
+
+modalClose.addEventListener('click', closeModal);
+modal.querySelector('.modal-backdrop').addEventListener('click', closeModal);
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+        closeModal();
+    }
+});
+
+window.addEventListener('popstate', (e) => {
+    const target = pageParamToArticle((e.state || {}).page);
+    if (target) openArticle(target.url, target.source, false);
+    else hideModal();
+});
+
+const adAnchorClose = document.getElementById('adAnchorClose');
+if (adAnchorClose) {
+    adAnchorClose.addEventListener('click', () => {
+        document.getElementById('adAnchor').classList.add('is-dismissed');
+    });
+}
+
+const todayDateEl = document.getElementById('todayDate');
+if (todayDateEl) {
+    todayDateEl.textContent = new Date().toLocaleDateString('ar-LB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+const LIVE_TAB_KEY = 'akhbar-live-tab';
+
+function activateLiveTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.getElementById('live-tayyar').classList.toggle('active', tab === 'tayyar');
+    document.getElementById('live-elnashra').classList.toggle('active', tab === 'elnashra');
+    localStorage.setItem(LIVE_TAB_KEY, tab);
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => activateLiveTab(btn.dataset.tab));
+});
+
+activateLiveTab(localStorage.getItem(LIVE_TAB_KEY) || 'tayyar');
+
+async function loadHome() {
+    loadingEl.style.display = 'block';
+    contentEl.style.display = 'none';
+    try {
+        const data = await scrapeHomepage();
+        renderFeatured(data.featured);
+        renderExclusive(data.exclusive);
+        renderLive(data.live);
+        const rail = document.getElementById('adRail');
+        rail.innerHTML = adMarkup('rail');
+        activateAds(rail);
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'grid';
+    } catch (err) {
+        loadingEl.innerHTML = `<div class="error-msg">Failed to load news: ${err.message}</div>`;
+        return;
+    }
+
+    // Elnashra tab loads independently so a failure there doesn't block the main content.
+    try {
+        const elnashraLive = await scrapeElnashraLive();
+        renderElnashraLive(elnashraLive);
+    } catch (err) {
+        document.getElementById('live-elnashra').innerHTML = `<div class="error-msg">Failed to load: ${err.message}</div>`;
+    }
+}
+
+// A direct hit on ?page=... opens that article, so the URL always shows what it
+// claims to. replaceState (not push) marks it as not-ours-to-go-back-from.
+function restoreFromUrl() {
+    const page = new URLSearchParams(location.search).get('page');
+    const target = pageParamToArticle(page);
+    if (!target) return;
+    history.replaceState({ page, pushed: false }, '', pageHref(page));
+    openArticle(target.url, target.source, false);
+}
+
+restoreFromUrl();
+loadHome();
+</script>
+</body>
+</html>
