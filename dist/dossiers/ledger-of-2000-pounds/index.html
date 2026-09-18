@@ -439,6 +439,95 @@ html[data-theme="dark"] .theme__lbl::after{content:'Paper'}
 html[data-theme="light"] .theme__lbl::after{content:'Ink'}
 @media(max-width:700px){.theme{top:14px;right:14px;padding:9px 12px;font-size:9px}}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ══ READABILITY ══
+   Layered last so it wins. The display type and photography stay; what goes is anything
+   that competes with reading: grain over the text, hairline serifs at small sizes,
+   paragraphs set in tiny mono, and labels too small and too widely tracked to scan. */
+html[data-theme="light"]{--muted:#5c5347;--bone-dim:#2f2923}
+html[data-theme="dark"]{--muted:#b5aa9a;--bone-dim:#ddd5c7}
+body::before{display:none}
+/* Sections are also .wrap, whose padding:0 32px out-ranks section{} and zeroed the vertical breathing room. */
+section.wrap{padding-top:96px;padding-bottom:96px}
+.feature--full{margin-bottom:0}   /* the next section's padding already provides the gap */
+
+/* Long passages read in the body serif, not mono. */
+figcaption,.note{font-family:var(--body);font-size:15px;line-height:1.65;letter-spacing:0;color:var(--bone-dim)}
+figcaption b,.note b{font-weight:600}
+.note{margin-top:16px;max-width:76ch}
+.hero__caption{font-family:var(--body);font-size:13.5px;letter-spacing:0;color:rgba(242,236,225,.85)}
+.show__cap{font-family:var(--body);font-size:15px;letter-spacing:0}
+
+/* Mono labels: bigger, tighter tracking, full-strength colour. */
+.tag,.ctl-label,.totals__l,thead th,.c-date small,.drawer h4,.meta-row dt,.card .sub,
+.tonrow__lab span,.tonkey,.err__old .lab,.err__new .lab,.srcgrid a span,.show__meta,
+.show__num,.show__play,.tl__d,.counterweight h4,.fnum,.sec-head .num,.gapbar__lab,.tonrow__mult{
+  font-size:12px;letter-spacing:.08em}
+.pill{font-size:11px;letter-spacing:.08em}
+.c-mech{font-size:13px;letter-spacing:.02em;color:var(--bone)}
+.chip{font-size:13px;letter-spacing:.02em}
+.search{font-size:15px}
+.err__new .lab{color:var(--ok)}
+.err__old p{color:var(--bone-dim)}
+.c-qty.zero{color:var(--muted)}
+
+/* Bodoni's hairlines disappear at small sizes: figures and minor headings go to the text serif. */
+.c-val,.totals__n,.gapbar__val,.tonrow__val,.tl__t,.card h3{font-family:var(--body);font-weight:600;letter-spacing:0}
+.stat__l,.card p,.tl__b,.counterweight p,.drawer li,.meta-row,.legend div,.tonrow__lab,.foot p,.srcgrid a{font-size:15.5px}
+
+/* ══ PHONE ══ */
+@media(max-width:700px){
+  body{font-size:17px}
+  .wrap{padding:0 20px}
+  section.wrap{padding-top:56px;padding-bottom:56px}
+
+  /* The toggle rides with the hero instead of floating over every paragraph. */
+  .theme{position:absolute}
+
+  h1{font-size:clamp(2.5rem,12.5vw,3.4rem);line-height:.95}
+  .hero__kicker{flex-wrap:wrap;gap:6px 14px;margin-bottom:20px}
+  .hero__kicker .line{display:none}
+  .hero__sub{font-size:1.08rem;margin-top:22px}
+  .hero__caption{padding:0 20px 28px;margin-top:24px}
+  .hero__img::after{background:linear-gradient(to bottom,rgba(12,10,8,.7) 0%,rgba(12,10,8,.55) 35%,rgba(12,10,8,.88) 70%,var(--hero-fade) 100%)}
+
+  .stat{padding:22px 16px}
+  .stat__l{font-size:14.5px}
+  .sec-head{gap:14px}
+  .controls__row{padding:16px}
+  .totals>div{padding:16px}
+  .totals__n{font-size:1.5rem}
+
+  /* Ledger rows become cards: date + value on top, then the breakdown, then the description. */
+  table{min-width:0;display:block}
+  thead{display:none}
+  tbody{display:block}
+  tbody tr.row{display:grid;grid-template-columns:1fr auto;gap:8px 16px;padding:18px 16px}
+  tbody tr.row td{padding:0;max-width:none}
+  tbody tr.row td:nth-child(3),tbody tr.row td:nth-child(7){grid-column:1/-1}
+  tbody tr.row td:nth-child(2){text-align:right}
+  tbody tr.row td:nth-child(4),tbody tr.row td:nth-child(5),tbody tr.row td:nth-child(6){
+    grid-column:1/-1;display:flex;justify-content:space-between;gap:12px;
+    border-top:1px solid var(--rule);padding-top:8px;white-space:normal;text-align:right}
+  tbody tr.row td:nth-child(4)::before{content:'2,000-lb GP'}
+  tbody tr.row td:nth-child(5)::before{content:'Penetrator'}
+  tbody tr.row td:nth-child(6)::before{content:'Kits'}
+  tbody tr.row td:nth-child(4)::before,tbody tr.row td:nth-child(5)::before,tbody tr.row td:nth-child(6)::before{
+    font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left}
+  tbody tr.row td:nth-child(7){font-size:15.5px;margin-top:4px}
+  tr.detail{display:block}
+  tr.detail>td{display:block}
+  .drawer__in{padding:22px 16px 26px}
+  .meta-row{flex-direction:column;gap:2px}
+  .meta-row dt{flex:none}
+
+  .show__nav{width:40px;height:40px}
+  .show__nav--p{left:8px}.show__nav--n{right:8px}
+  .show__cap{font-size:14px;padding:40px 14px 14px}
+  .counterweight{padding:20px 18px}
+  .err{gap:14px}
+  .card{padding:24px 20px}
+}
 </style>
 
 <!-- Umami analytics -->
@@ -465,7 +554,7 @@ html[data-theme="light"] .theme__lbl::after{content:'Ink'}
       <div class="line"></div>
       <span class="tag">26 Cases · 2021–2026</span>
     </div>
-    <h1>The&nbsp;Ledger<br>of&nbsp;<em>Two&nbsp;Thousand</em><br>Pounds</h1>
+    <h1>The&nbsp;Ledger<br>of <em>Two Thousand</em><br>Pounds</h1>
     <p class="hero__sub">Every U.S. congressional notification, emergency waiver and recorded transfer of heavy munitions to Israel — traced to the primary document, corrected against the public record, and laid open for inspection in an interactive table.</p>
   </div>
   <div class="hero__caption">
@@ -592,7 +681,7 @@ html[data-theme="light"] .theme__lbl::after{content:'Ink'}
     </table>
     <div class="empty" id="empty" hidden>No cases match those filters.</div>
   </div>
-  <p style="font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.03em;margin-top:16px;line-height:1.7;max-width:76ch">
+  <p class="note">
     † The 1,800 bombs held in May 2024 and released in January 2025 are the same warheads. They are listed as two events but counted once in the running total.
     Values are estimated totals at notification and frequently differ from final contract value. Rows without a dollar figure are transfers or holds, not sales.
   </p>
