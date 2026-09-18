@@ -1325,7 +1325,7 @@ render();
 })();
 
 /* ═══════════════ REVEAL + COUNTERS + BARS ═══════════════ */
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{threshold:.1});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{threshold:0,rootMargin:"0px 0px -12% 0px"});  // any height: a ratio threshold never fires once a section is taller than 1/ratio screens
 document.querySelectorAll(".reveal").forEach(e=>io.observe(e));
 
 /* Real values are already in the HTML; the count-up is enhancement only, so a fast
